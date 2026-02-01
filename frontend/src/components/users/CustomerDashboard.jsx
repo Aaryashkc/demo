@@ -6,17 +6,17 @@ function CustomerDashboard() {
 
   const handleMyWastePickUp = () => {
     console.log('Navigate to My Waste Pick Up');
-    // navigate('/customer/pickups')
+    navigate('/upload-waste')
   };
 
   const handlePickWaste = () => {
     console.log('Navigate to Pick Waste');
-    // navigate('/customer/request-pickup')
+    navigate('/upload-waste')
   };
 
   const handleSeeMore = () => {
     console.log('See more services');
-    // navigate('/customer/services')
+    navigate('/upload-waste')
   };
 
   const handleSchedule = () => {

@@ -12,6 +12,8 @@ import OTPVerificationPage from '../components/auth/OTPVerificationPage';
 import CustomerLandingPage from '../components/users/CustomerLanding';
 import CustomerDashboard from '../components/users/CustomerDashboard';
 import SchedulePage from '../components/users/SchedulePage';
+import UploadWastePage from '../components/users/UploadWastePage';
+import SearchPage from '../components/sub-components/Searching';
 
 const AppRoutes = () => {
     return (
@@ -30,6 +32,10 @@ const AppRoutes = () => {
             <Route path="/customer-landing" element={<CustomerLandingPage />} />
             <Route path="/customer-dashboard" element={<CustomerDashboard />} />
             <Route path="/schedule" element={<SchedulePage />} />
+            <Route path="/upload-waste" element={<UploadWastePage />} />
+
+
+            <Route path="/searching" element={<SearchPage />} />
 
 
             <Route path="/dashboard" element={<DashboardLayout />}>

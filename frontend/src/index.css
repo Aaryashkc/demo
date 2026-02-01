@@ -1,1 +1,30 @@
 @import "tailwindcss";
+
+
+:root {
+  --app-bg: #f5f1e8;
+  --primary: #354f52;
+  --accent: #296200;
+}
+
+/* Base font */
+html,
+body {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* =========================
+   App Layout Utilities
+   ========================= */
+
+.app-bg {
+  background-color: var(--app-bg);
+  min-height: 100vh;
+}
+
+.app-container {
+  max-width: 72rem; /* Tailwind max-w-6xl */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 3rem 1.5rem; /* py-12 px-6 */
+}
