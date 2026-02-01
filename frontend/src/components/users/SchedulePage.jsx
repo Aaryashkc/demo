@@ -1,0 +1,290 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+function SchedulePage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(null); 
+  // selectedLocation = { city, area, label }
+  const navigate = useNavigate();
+
+  const allSchedules = useMemo(
+    () =>
+      [
+        { id: 1, city: "Kathmandu", area: "Maitidevi", truckName: "Truck", truckId: "#12548796", truckType: "light duty", driver: "Rajesh Khan", day: "Monday", time: "~7:00 am" },
+        { id: 2, city: "Kathmandu", area: "Maitidevi", truckName: "Truck", truckId: "#12548796", truckType: "light duty", driver: "Rajesh Khan", day: "Friday", time: "~7:00 am" },
+
+        { id: 3, city: "Kathmandu", area: "Thamel", truckName: "Truck Pro", truckId: "#12548801", truckType: "heavy duty", driver: "Sanjay Sharma", day: "Tuesday", time: "~8:00 am" },
+        { id: 4, city: "Kathmandu", area: "Thamel", truckName: "Truck Pro", truckId: "#12548801", truckType: "heavy duty", driver: "Sanjay Sharma", day: "Saturday", time: "~8:00 am" },
+
+        { id: 5, city: "Lalitpur", area: "Patan", truckName: "Eco Truck", truckId: "#12548823", truckType: "medium duty", driver: "Anil Kumar", day: "Wednesday", time: "~6:30 am" },
+        { id: 6, city: "Lalitpur", area: "Patan", truckName: "Eco Truck", truckId: "#12548823", truckType: "medium duty", driver: "Anil Kumar", day: "Sunday", time: "~6:30 am" },
+
+        { id: 7, city: "Bhaktapur", area: "Durbar Square", truckName: "City Hauler", truckId: "#12548845", truckType: "light duty", driver: "Prakash Rai", day: "Monday", time: "~9:00 am" },
+        { id: 8, city: "Bhaktapur", area: "Durbar Square", truckName: "City Hauler", truckId: "#12548845", truckType: "light duty", driver: "Prakash Rai", day: "Thursday", time: "~9:00 am" },
+
+        { id: 9, city: "Pokhara", area: "Lakeside", truckName: "Valley Truck", truckId: "#12548867", truckType: "heavy duty", driver: "Binod Thapa", day: "Tuesday", time: "~7:30 am" },
+        { id: 10, city: "Pokhara", area: "Lakeside", truckName: "Valley Truck", truckId: "#12548867", truckType: "heavy duty", driver: "Binod Thapa", day: "Friday", time: "~7:30 am" },
+
+        { id: 11, city: "Kathmandu", area: "Baneshwor", truckName: "Mega Truck", truckId: "#12548889", truckType: "medium duty", driver: "Suresh Tamang", day: "Wednesday", time: "~8:30 am" },
+        { id: 12, city: "Kathmandu", area: "Baneshwor", truckName: "Mega Truck", truckId: "#12548889", truckType: "medium duty", driver: "Suresh Tamang", day: "Saturday", time: "~8:30 am" },
+
+        { id: 13, city: "Lalitpur", area: "Jawalakhel", truckName: "Green Hauler", truckId: "#12548901", truckType: "light duty", driver: "Ramesh Gurung", day: "Monday", time: "~6:00 am" },
+        { id: 14, city: "Lalitpur", area: "Jawalakhel", truckName: "Green Hauler", truckId: "#12548901", truckType: "light duty", driver: "Ramesh Gurung", day: "Thursday", time: "~6:00 am" },
+
+        { id: 15, city: "Kathmandu", area: "Kirtipur", truckName: "Swift Collector", truckId: "#12548923", truckType: "medium duty", driver: "Dipak Shrestha", day: "Tuesday", time: "~7:00 am" },
+        { id: 16, city: "Kathmandu", area: "Kirtipur", truckName: "Swift Collector", truckId: "#12548923", truckType: "medium duty", driver: "Dipak Shrestha", day: "Friday", time: "~7:00 am" },
+
+        { id: 17, city: "Bhaktapur", area: "Thimi", truckName: "Metro Truck", truckId: "#12548945", truckType: "heavy duty", driver: "Krishna Maharjan", day: "Wednesday", time: "~8:00 am" },
+        { id: 18, city: "Bhaktapur", area: "Thimi", truckName: "Metro Truck", truckId: "#12548945", truckType: "heavy duty", driver: "Krishna Maharjan", day: "Saturday", time: "~8:00 am" },
+
+        { id: 19, city: "Pokhara", area: "Mahendrapool", truckName: "Clean Truck", truckId: "#12548967", truckType: "light duty", driver: "Nabin Poudel", day: "Monday", time: "~9:30 am" },
+        { id: 20, city: "Pokhara", area: "Mahendrapool", truckName: "Clean Truck", truckId: "#12548967", truckType: "light duty", driver: "Nabin Poudel", day: "Thursday", time: "~9:30 am" }
+      ].map((s) => ({ ...s, label: `${s.city} — ${s.area}` })),
+    []
+  );
+
+  // ✅ Unique city+area locations
+  const uniqueLocations = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    for (const s of allSchedules) {
+      const key = `${s.city}||${s.area}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push({ city: s.city, area: s.area, label: s.label });
+      }
+    }
+    return list;
+  }, [allSchedules]);
+
+  // ✅ Filter schedules by city OR area OR label
+  const filteredSchedules = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+
+    return allSchedules.filter((s) => {
+      return (
+        s.city.toLowerCase().includes(q) ||
+        s.area.toLowerCase().includes(q) ||
+        s.label.toLowerCase().includes(q)
+      );
+    });
+  }, [searchQuery, allSchedules]);
+
+  // ✅ Display schedules logic
+  const displaySchedules = useMemo(() => {
+    if (selectedLocation) {
+      return allSchedules.filter(
+        (s) => s.city === selectedLocation.city && s.area === selectedLocation.area
+      );
+    }
+    if (searchQuery.trim()) return filteredSchedules;
+    return allSchedules.slice(0, 2);
+  }, [selectedLocation, searchQuery, filteredSchedules, allSchedules]);
+
+  const handleSearch = () => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return;
+
+    const match = uniqueLocations.find((loc) => {
+      return (
+        loc.city.toLowerCase().includes(q) ||
+        loc.area.toLowerCase().includes(q) ||
+        loc.label.toLowerCase().includes(q)
+      );
+    });
+
+    if (match) setSelectedLocation(match);
+  };
+
+  const handleBack = () => {
+    navigate("/customer-dashboard");
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") handleSearch();
+  };
+
+  return (
+    <div className="bg-[#f5f1e8] min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Back Button */}
+        <button
+          onClick={handleBack}
+          className="bg-[#354f52] w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center hover:bg-[#2a3f41] transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 active:scale-95 transform mb-8 sm:mb-10"
+          aria-label="Go back"
+        >
+          <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="#f5f1e8" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </button>
+
+        {/* Page Title */}
+        <h2 className="font-['Outfit',sans-serif] font-bold text-3xl sm:text-4xl lg:text-5xl text-[#354f52] text-center mb-8 sm:mb-12">
+          See Your Scheduling
+        </h2>
+
+        {/* Search Bar */}
+        <div className="max-w-3xl mx-auto mb-8 sm:mb-12">
+          <div className="flex gap-0 shadow-lg rounded-full overflow-hidden">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setSelectedLocation(null); // ✅ important: reset when typing
+              }}
+              onKeyPress={handleKeyPress}
+              placeholder="Search by city or area (e.g., Kathmandu, Pokhara, Lalitpur)"
+              className="flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-[#84a98c] text-white placeholder:text-white/80 font-['Poppins',sans-serif] text-base sm:text-lg focus:outline-none"
+            />
+            <button
+              onClick={handleSearch}
+              className="bg-[#354f52] px-6 sm:px-10 py-4 sm:py-5 font-['Inter',sans-serif] font-medium text-white text-base sm:text-lg hover:bg-[#2a3f41] transition-colors focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-inset flex items-center gap-2"
+            >
+              Search
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </div>
+
+          {/* No Results */}
+          {searchQuery && filteredSchedules.length === 0 && (
+            <p className="text-center mt-4 text-[#354f52] font-['Poppins',sans-serif]">
+              No schedules found. Try: {uniqueLocations.slice(0, 3).map((l) => l.label).join(", ")}
+            </p>
+          )}
+        </div>
+
+        {/* Location Title */}
+        {selectedLocation && (
+          <div className="max-w-5xl mx-auto mb-6">
+            <h3 className="font-['Outfit',sans-serif] font-bold text-2xl sm:text-3xl text-[#354f52] mb-2">
+              {selectedLocation.city} — {selectedLocation.area}
+            </h3>
+          </div>
+        )}
+
+        {/* Routine Pick Up Section */}
+        <div className="max-w-5xl mx-auto">
+          <h3 className="font-['Poppins',sans-serif] font-semibold text-xl sm:text-2xl text-[#354f52] mb-6 sm:mb-8">
+            Routine Pick Up Around Your Area:
+          </h3>
+
+          {/* Schedule Cards */}
+          <div className="space-y-6 sm:space-y-8">
+            {displaySchedules.map((schedule) => (
+              <div
+                key={schedule.id}
+                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-shadow"
+              >
+                <div className="flex items-start gap-4 sm:gap-6">
+                  {/* Truck Icon */}
+                  <div className="flex-shrink-0">
+                    <svg className="w-16 h-16 sm:w-20 sm:h-20" viewBox="0 0 80 80" fill="none">
+                      <rect x="20" y="30" width="40" height="35" rx="3" stroke="#ef4444" strokeWidth="3" fill="none" />
+                      <path d="M25 30V25C25 22 27 20 30 20H50C53 20 55 22 55 25V30" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+                      <circle cx="25" cy="62" r="5" fill="#ef4444" />
+                      <circle cx="55" cy="62" r="5" fill="#ef4444" />
+                      <line x1="20" y1="65" x2="60" y2="65" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  </div>
+
+                  {/* ✅ Details + City/Area UI */}
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      <span className="inline-flex items-center rounded-full bg-[#354f52] px-3 py-1 text-xs sm:text-sm font-semibold text-white">
+                        {schedule.city}
+                      </span>
+                      <span className="text-sm sm:text-base text-[#354f52]/80 font-['Poppins',sans-serif]">
+                        {schedule.area}
+                      </span>
+
+                      {/* Optional: quick filter by this location */}
+                      <button
+                        onClick={() => setSelectedLocation({ city: schedule.city, area: schedule.area, label: schedule.label })}
+                        className="ml-auto text-xs sm:text-sm text-[#354f52] underline hover:text-[#2a3f41]"
+                      >
+                        View all for this area
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+                      <div>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-sm sm:text-base text-[#354f52] mb-1">
+                          Truck Name
+                        </p>
+                        <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-[#354f52]">
+                          {schedule.truckName}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-sm sm:text-base text-[#354f52] mb-1">
+                          Truck ID
+                        </p>
+                        <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-[#354f52]">
+                          {schedule.truckId}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-sm sm:text-base text-[#354f52] mb-1">
+                          Truck type
+                        </p>
+                        <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-[#354f52]">
+                          {schedule.truckType}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-sm sm:text-base text-[#354f52] mb-1">
+                          Assigned Driver
+                        </p>
+                        <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-[#354f52]">
+                          {schedule.driver}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-sm sm:text-base text-[#354f52] mb-1">
+                          Day
+                        </p>
+                        <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-[#354f52]">
+                          {schedule.day}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-['Poppins',sans-serif] font-semibold text-sm sm:text-base text-[#354f52] mb-1">
+                          Time
+                        </p>
+                        <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-[#354f52]">
+                          {schedule.time}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {!selectedLocation && !searchQuery && displaySchedules.length < allSchedules.length && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setSearchQuery("Kathmandu")}
+                className="font-['Poppins',sans-serif] text-base sm:text-lg text-[#354f52] hover:text-[#296200] transition-colors underline"
+              >
+                Search for more locations
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default SchedulePage;

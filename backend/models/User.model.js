@@ -1,63 +1,85 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
+const otpSchema = new mongoose.Schema(
+  {
+    hash: { type: String }, // sha256 of OTP (never store plain OTP)
+    expiresAt: { type: Date },
+    attempts: { type: Number, default: 0 },
+    lastSentAt: { type: Date } // for resend cooldown
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true
+  { _id: false }
+);
+
+const twoFactorSchema = new mongoose.Schema(
+  {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String } // encrypted TOTP secret (do NOT store raw if possible)
   },
-  password: {
-    type: String,
-    required: true
-  },
-  contactInfo: {
+  { _id: false }
+);
+
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, trim: true, required: true },
+
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true
+    },
+
+    emailVerified: { type: Boolean, default: false },
+
+    role: {
+      type: String,
+      enum: ["USER", "DRIVER", "ORG_ADMIN", "SUPER_ADMIN"],
+      default: "USER",
+      index: true
+    },
+
+    orgId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null,
+      index: true
+    },
+
+    passwordHash: { type: String, default: null },
+
+    loginOtp: { type: otpSchema, default: null },
+
+    twoFactor: { type: twoFactorSchema, default: () => ({}) },
+
+    loginAttempts: { type: Number, default: 0 },
+    lockUntil: { type: Date, default: null },
+
     phone: {
-      type: String
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true
     },
-    address: {
-      type: String
-    }
-  },
-  location: {
-    latitude: {
-      type: Number
+    phoneVerified: { type: Boolean, default: false },
+
+    address: { type: String, default: null },
+
+    location: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null },
+      address: { type: String, default: null }
     },
-    longitude: {
-      type: Number
-    },
-    address: {
-      type: String
-    }
+
+    isActive: { type: Boolean, default: true },
+    lastLoginAt: { type: Date, default: null }
   },
-  role: {
-    type: String,
-    enum: ["USER", "ORG_ADMIN", "DRIVER", "SUPER_ADMIN"],
-    default: "USER"
-  },
-  orgId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Organization",
-    default: null
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+  { timestamps: true }
+);
+
+userSchema.virtual("isLocked").get(function () {
+  return !!(this.lockUntil && this.lockUntil > new Date());
 });
 
-userSchema.pre("save", function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
-const User = mongoose.model("User", userSchema);
-
-export default User;
+export default mongoose.model("User", userSchema);
