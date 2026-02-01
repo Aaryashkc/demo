@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Hero() {
     const imgImage5 = 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
@@ -18,10 +19,12 @@ export function Hero() {
             EcoWaste Dashboard streamlines your entire waste management operation. Track routes, assign drivers, and respond to requests in real time.
           </p>
           <div className="flex flex-wrap gap-4">
-            <button className="bg-[#354f52] text-[#f5f1e8] px-10 py-5 rounded-[20px] font-['Inter'] font-medium text-xl flex items-center gap-3 hover:bg-opacity-90 transition-all">
-              Get Started
-              <ArrowRight className="w-5 h-5" />
-            </button>
+            <Link to="/customer-dashboard">
+              <button className="bg-[#354f52] text-[#f5f1e8] px-10 py-5 rounded-[20px] font-['Inter'] font-medium text-xl flex items-center gap-3 hover:bg-opacity-90 transition-all">
+                Get Started
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </Link>
             <button className="border-2 border-[#354f52] text-[#354f52] px-10 py-5 rounded-[20px] font-['Inter'] font-medium text-xl hover:bg-[#354f52] hover:text-white transition-all">
               Learn More
             </button>

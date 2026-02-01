@@ -14,6 +14,9 @@ import CustomerDashboard from '../components/users/CustomerDashboard';
 import SchedulePage from '../components/users/SchedulePage';
 import UploadWastePage from '../components/users/UploadWastePage';
 import SearchPage from '../components/sub-components/Searching';
+import DriverDashboard from '../components/Driver/DriverDashboard';
+import AcceptTaskPage from '../components/Driver/AcceptTaskPage';
+import TaskRoutePage from '../components/Driver/TaskRoutePage';
 
 const AppRoutes = () => {
     return (
@@ -33,9 +36,12 @@ const AppRoutes = () => {
             <Route path="/customer-dashboard" element={<CustomerDashboard />} />
             <Route path="/schedule" element={<SchedulePage />} />
             <Route path="/upload-waste" element={<UploadWastePage />} />
-
-
             <Route path="/searching" element={<SearchPage />} />
+
+
+            <Route path="/driver-dashboard" element={<DriverDashboard />} />
+            <Route path="/accept-task" element={<AcceptTaskPage />} />
+            <Route path="/task-route" element={<TaskRoutePage />} />
 
 
             <Route path="/dashboard" element={<DashboardLayout />}>
