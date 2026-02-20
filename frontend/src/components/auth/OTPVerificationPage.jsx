@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../../utils/api';
+import useAuthStore from '../../stores/useAuthStore';
+import { getDashboardRoute } from '../../utils/roleRouting';
 
 function OTPVerificationPage() {
   const navigate = useNavigate();
+  const { loginWithOTP, isAuthenticated, user } = useAuthStore();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -10,6 +14,14 @@ function OTPVerificationPage() {
   const [resendTimer, setResendTimer] = useState(60);
   
   const inputRefs = useRef([]);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const dashboardRoute = getDashboardRoute(user.role);
+      navigate(dashboardRoute, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   // Timer for resend OTP
   useEffect(() => {
@@ -74,16 +86,38 @@ function OTPVerificationPage() {
     setError('');
     
     try {
-      // Commenting out verification logic for now
-      // await new Promise(resolve => setTimeout(resolve, 1500));
-      // console.log('Verifying OTP:', otpCode);
-      // Handle successful verification (redirect to dashboard, etc.)
-      navigate('/customer-landing')
+      // Get email from sessionStorage
+      const email = sessionStorage.getItem('otpEmail');
+      
+      if (!email) {
+        setError('Email not found. Please start over.');
+        navigate('/login');
+        return;
+      }
+
+      // Verify OTP using Zustand store
+      const result = await loginWithOTP(otpCode, email);
+      
+      if (result.success) {
+        // Clear OTP email from sessionStorage
+        sessionStorage.removeItem('otpEmail');
+        
+        // Navigate based on user role
+        const dashboardRoute = getDashboardRoute(result.user.role);
+        navigate(dashboardRoute, { replace: true });
+      } else {
+        setError(result.error || 'Invalid code. Please try again.');
+        // Clear OTP on error
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
     } catch (err) {
-      // Commenting out error handling for now
-      setError('Invalid code. Please try again.', err.message);
-      // setOtp(['', '', '', '', '', '']);
-      // inputRefs.current[0]?.focus();
+      const errorMessage = err.response?.data?.message || err.message || 'Invalid code. Please try again.';
+      setError(errorMessage);
+      
+      // Clear OTP on error
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
     } finally {
       setIsLoading(false);
     }
@@ -97,12 +131,22 @@ function OTPVerificationPage() {
     setError('');
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Resending OTP...');
+      const email = sessionStorage.getItem('otpEmail');
+      
+      if (!email) {
+        setError('Email not found. Please start over.');
+        navigate('/login');
+        return;
+      }
+
+      // Request new OTP
+      await authAPI.requestOTP(email);
+      
       // Show success message
       alert('New code sent to your email!');
     } catch (err) {
-      setError('Failed to resend code. Please try again.', err.message);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to resend code. Please try again.';
+      setError(errorMessage);
       setCanResend(true);
     }
   };

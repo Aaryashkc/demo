@@ -23,8 +23,23 @@ body {
 }
 
 .app-container {
-  max-width: 72rem; /* Tailwind max-w-6xl */
+  max-width: 72rem;
+  /* Tailwind max-w-6xl */
   margin-left: auto;
   margin-right: auto;
-  padding: 3rem 1.5rem; /* py-12 px-6 */
+  padding: 3rem 1.5rem;
+  /* py-12 px-6 */
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -1,20 +1,26 @@
 import React from "react";
 import Button from "../common/Button";
 import { useNavigate } from "react-router-dom";
+import useAuthStore from "../../stores/useAuthStore";
 
 const Topbar = ({ name = "Admin User", role = "System Administrator" }) => {
   const navigate = useNavigate();
+  const { logout, user } = useAuthStore();
+
+  // Use user data from store if available
+  const displayName = user?.name || name;
+  const displayRole = user?.role || role;
 
   const initials = React.useMemo(() => {
-    const parts = String(name).trim().split(/\s+/).slice(0, 2);
+    const parts = String(displayName).trim().split(/\s+/).slice(0, 2);
     const a = parts[0]?.[0] ?? "A";
     const b = parts[1]?.[0] ?? "U";
     return (a + b).toUpperCase();
-  }, [name]);
+  }, [displayName]);
 
   const handleLogout = () => {
-    // ✅ admin logout should go to admin login, not customer login
-    navigate("/admin-login", { replace: true });
+    logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -40,9 +46,9 @@ const Topbar = ({ name = "Admin User", role = "System Administrator" }) => {
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block leading-tight">
               <p className="text-sm font-semibold text-[var(--primary)]">
-                {name}
+                {displayName}
               </p>
-              <p className="text-xs text-[var(--primary)]/60">{role}</p>
+              <p className="text-xs text-[var(--primary)]/60">{displayRole}</p>
             </div>
 
             <div className="h-10 w-10 rounded-2xl bg-[#f5f1e8] border border-[var(--primary)]/12 flex items-center justify-center font-bold text-[var(--primary)]">

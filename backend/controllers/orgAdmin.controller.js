@@ -27,9 +27,9 @@ export const createAdmin = async (req, res) => {
     const admin = new User({
       name,
       email,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       contactInfo,
-      role: "ORG_ADMIN",
+      role: "admin",
       orgId
     });
 
@@ -98,8 +98,8 @@ export const addDriver = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (user.role !== "DRIVER") {
-      return res.status(400).json({ message: "User must have DRIVER role" });
+    if (user.role !== "driver") {
+      return res.status(400).json({ message: "User must have driver role" });
     }
 
     if (user.orgId && user.orgId.toString() !== orgId.toString()) {

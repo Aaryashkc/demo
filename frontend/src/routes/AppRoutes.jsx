@@ -1,7 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
-import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import HomePage from "../pages/HomePage";
@@ -10,6 +9,12 @@ import CustomerLoginPage from "../components/auth/CustomerLogin";
 import { Header } from "../components/Headers/Header";
 import CustomerSignUpPage from "../components/auth/CustomerSignup";
 import OTPVerificationPage from "../components/auth/OTPVerificationPage";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
+import Unauthorized from "../pages/Unauthorized";
+import AboutUs from "../pages/AboutUs";
+import OurTeam from "../pages/OurTeam";
+import ContactUs from "../pages/ContactUs";
+import Profile from "../pages/Profile";
 import CustomerLandingPage from "../components/users/CustomerLanding";
 import CustomerDashboard from "../components/users/CustomerDashboard";
 import SchedulePage from "../components/users/SchedulePage";
@@ -30,25 +35,134 @@ const AppRoutes = () => {
       {!isAdminRoute && <Header />}
 
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<CustomerLoginPage />} />
         <Route path="/signup" element={<CustomerSignUpPage />} />
         <Route path="/otp-verification" element={<OTPVerificationPage />} />
-        <Route path="/admin-login" element={<Login />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-        <Route path="/customer-landing" element={<CustomerLandingPage />} />
-        <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-        <Route path="/schedule" element={<SchedulePage />} />
-        <Route path="/upload-waste" element={<UploadWastePage />} />
-        <Route path="/searching" element={<SearchPage />} />
+        {/* Info Pages (accessible to logged-in customer_admin) */}
+        <Route
+          path="/about-us"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <AboutUs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/our-team"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <OurTeam />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contact-us"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <ContactUs />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/driver-dashboard" element={<DriverDashboard />} />
-        <Route path="/accept-task" element={<AcceptTaskPage />} />
-        <Route path="/task-route" element={<TaskRoutePage />} />
-        <Route path="/task-flow" element={<TaskFlow />} />
+        {/* Profile (all authenticated users) */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin', 'admin', 'customer_admin', 'driver']}>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* ADMIN DASHBOARD */}
-        <Route path="/admin-dashboard" element={<DashboardLayout />}>
+        {/* Protected Customer Admin Routes */}
+        <Route
+          path="/customer-landing"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <CustomerLandingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <CustomerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/schedule"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <SchedulePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/upload-waste"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <UploadWastePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/searching"
+          element={
+            <ProtectedRoute allowedRoles={['customer_admin']}>
+              <SearchPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected Driver Routes */}
+        <Route
+          path="/driver-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['driver']}>
+              <DriverDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/accept-task"
+          element={
+            <ProtectedRoute allowedRoles={['driver']}>
+              <AcceptTaskPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/task-route"
+          element={
+            <ProtectedRoute allowedRoles={['driver']}>
+              <TaskRoutePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/task-flow"
+          element={
+            <ProtectedRoute allowedRoles={['driver']}>
+              <TaskFlow />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected Admin Routes (super_admin and admin) */}
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route
             path="vehicles"
@@ -67,7 +181,7 @@ const AppRoutes = () => {
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      
+
       {!isAdminRoute && <Footer />}
     </>
   );

@@ -141,3 +141,47 @@ export const updateLocation = async (req, res) => {
   }
 };
 
+export const getAllDrivers = async (req, res) => {
+  try {
+    const { orgId } = req.user;
+
+    let userFilter = { role: 'driver' };
+
+    // Scoping
+    if (req.user.role !== 'super_admin') {
+      userFilter.orgId = orgId;
+    } else if (req.query.orgId) {
+      userFilter.orgId = req.query.orgId;
+    }
+
+    // 1. Find users who are drivers in this org
+    const driverUsers = await User.find(userFilter).select('_id');
+    const driverUserIds = driverUsers.map(u => u._id);
+
+    // 2. Find Driver profiles for these users
+    const drivers = await Driver.find({ userId: { $in: driverUserIds } })
+      .populate('userId', 'name email phone')
+      .populate('assignedTruckId', 'licensePlate truckType');
+
+    // Format for frontend
+    const formattedDrivers = drivers.map(d => ({
+      id: d._id,
+      name: d.userId?.name || 'Unknown',
+      email: d.userId?.email,
+      phone: d.userId?.phone,
+      status: d.isAvailable ? 'Available' : 'Busy',
+      currentTask: d.currentTask || null,
+      truck: d.assignedTruckId?.licensePlate || 'No Truck'
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedDrivers
+    });
+
+  } catch (error) {
+    console.error("Get all drivers error:", error);
+    res.status(500).json({ message: "Failed to fetch drivers", error: error.message });
+  }
+};
+

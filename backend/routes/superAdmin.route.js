@@ -10,7 +10,7 @@ import {
 const router = express.Router();
 
 router.use(authMiddleware);
-router.use(roleMiddleware("SUPER_ADMIN"));
+router.use(roleMiddleware("super_admin"));
 
 router.post("/organizations", createOrganization);
 router.get("/organizations", getAllOrganizations);

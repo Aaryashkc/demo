@@ -1,11 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authAPI } from '../../utils/api';
+import useAuthStore from '../../stores/useAuthStore';
+import { getDashboardRoute } from '../../utils/roleRouting';
 
 function CustomerLoginPage() {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuthStore();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const dashboardRoute = getDashboardRoute(user.role);
+      navigate(dashboardRoute, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,7 +26,7 @@ function CustomerLoginPage() {
 
   const handleLogin = async () => {
     setError('');
-    
+
     if (!email.trim()) {
       setError('Please enter your email address');
       return;
@@ -27,11 +39,17 @@ function CustomerLoginPage() {
 
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Logging in with email:', email);
+      // Request OTP from backend
+      await authAPI.requestOTP(email);
+
+      // Store email in sessionStorage for OTP verification page
+      sessionStorage.setItem('otpEmail', email);
+
+      // Navigate to OTP verification page
       navigate('/otp-verification');
     } catch (err) {
-      setError('Login failed. Please try again. ' + err.message);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to send OTP. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +76,7 @@ function CustomerLoginPage() {
       <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="w-full max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            
+
             {/* Left Side - Form */}
             <div className="w-full max-w-xl mx-auto lg:mx-0">
               {/* Welcome Heading */}
@@ -74,7 +92,7 @@ function CustomerLoginPage() {
               {/* Login Form */}
               <div className="space-y-6">
                 <div>
-                  <label 
+                  <label
                     htmlFor="email"
                     className="block font-['Poppins',sans-serif] text-lg sm:text-xl text-[#354f52] mb-3"
                   >
@@ -116,12 +134,12 @@ function CustomerLoginPage() {
                   </span>
                   {!isLoading && (
                     <svg className="rotate-90 w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 22 22" aria-hidden="true">
-                      <path 
-                        d="M11 16.5V5.5M11 5.5L5.5 11M11 5.5L16.5 11" 
-                        stroke="#F5F1E8" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth="1.5" 
+                      <path
+                        d="M11 16.5V5.5M11 5.5L5.5 11M11 5.5L16.5 11"
+                        stroke="#F5F1E8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.5"
                       />
                     </svg>
                   )}
@@ -131,7 +149,7 @@ function CustomerLoginPage() {
                 <div className="space-y-3 pt-4">
                   <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-black-100">
                     Don't have an account?{' '}
-                    <button 
+                    <button
                       onClick={handleSignUp}
                       className="font-['Poppins',sans-serif] font-semibold text-[#007300] hover:text-[#005500] underline focus:outline-none focus:ring-2 focus:ring-[#007300] rounded-sm"
                     >
@@ -139,38 +157,27 @@ function CustomerLoginPage() {
                     </button>
                   </p>
 
-                  <div className="font-['Poppins',sans-serif] text-sm sm:text-base text-[rgba(0,0,0,0.87)]">
-                    <p className="mb-2 font-medium">OR</p>
-                    <p>
-                      Are you a driver?{' '}
-                      <button 
-                        onClick={handleDriverSignUp}
-                        className="font-['Poppins',sans-serif] font-bold text-[#ff6b6b] hover:text-[#ff5252] underline focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] rounded-sm"
-                      >
-                        Sign up as Driver
-                      </button>
-                    </p>
-                  </div>
+
                 </div>
               </div>
             </div>
 
             {/* Right Side - Hero Image */}
             <div className="hidden lg:block">
-              <div 
+              <div
                 className="relative w-full aspect-[4/5] max-w-md xl:max-w-lg mx-auto"
                 role="img"
                 aria-label="Waste management worker in orange uniform"
               >
-                <img 
-                  alt="" 
-                  className="absolute inset-0 w-full h-full object-cover rounded-2xl shadow-2xl" 
-                  src="https://images.unsplash.com/photo-1581087098160-aa099753eed1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3YXN0ZSUyMG1hbmFnZW1lbnQlMjB3b3JrZXIlMjBvcmFuZ2UlMjB1bmlmb3JtfGVufDF8fHx8MTc2OTg3NjA1OXww&ixlib=rb-4.1.0&q=80&w=1080" 
+                <img
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover rounded-2xl shadow-2xl"
+                  src="https://images.unsplash.com/photo-1581087098160-aa099753eed1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3YXN0ZSUyMG1hbmFnZW1lbnQlMjB3b3JrZXIlMjBvcmFuZ2UlMjB1bmlmb3JtfGVufDF8fHx8MTc2OTg3NjA1OXww&ixlib=rb-4.1.0&q=80&w=1080"
                   loading="lazy"
                 />
-                <div 
-                  aria-hidden="true" 
-                  className="absolute inset-0 border-[#84a98c] border-8 sm:border-[12px] lg:border-[16px] rounded-2xl pointer-events-none" 
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 border-[#84a98c] border-8 sm:border-[12px] lg:border-[16px] rounded-2xl pointer-events-none"
                 />
               </div>
             </div>

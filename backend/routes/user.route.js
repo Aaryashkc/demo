@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.use(authMiddleware);
-router.use(roleMiddleware("USER"));
+router.use(roleMiddleware("customer_admin"));
 
 router.post("/pickup-request", requestOnDemandPickup);
 router.get("/requests/:taskId/status", trackRequestStatus);

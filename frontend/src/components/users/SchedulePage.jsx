@@ -1,49 +1,29 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import useScheduleStore from "../../stores/useScheduleStore";
 
 function SchedulePage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState(null); 
+  const [selectedLocation, setSelectedLocation] = useState(null);
   // selectedLocation = { city, area, label }
   const navigate = useNavigate();
 
+  const { schedules, loading, error, fetchAllData } = useScheduleStore();
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
   const allSchedules = useMemo(
     () =>
-      [
-        { id: 1, city: "Kathmandu", area: "Maitidevi", truckName: "Truck", truckId: "#12548796", truckType: "light duty", driver: "Rajesh Khan", day: "Monday", time: "~7:00 am" },
-        { id: 2, city: "Kathmandu", area: "Maitidevi", truckName: "Truck", truckId: "#12548796", truckType: "light duty", driver: "Rajesh Khan", day: "Friday", time: "~7:00 am" },
-
-        { id: 3, city: "Kathmandu", area: "Thamel", truckName: "Truck Pro", truckId: "#12548801", truckType: "heavy duty", driver: "Sanjay Sharma", day: "Tuesday", time: "~8:00 am" },
-        { id: 4, city: "Kathmandu", area: "Thamel", truckName: "Truck Pro", truckId: "#12548801", truckType: "heavy duty", driver: "Sanjay Sharma", day: "Saturday", time: "~8:00 am" },
-
-        { id: 5, city: "Lalitpur", area: "Patan", truckName: "Eco Truck", truckId: "#12548823", truckType: "medium duty", driver: "Anil Kumar", day: "Wednesday", time: "~6:30 am" },
-        { id: 6, city: "Lalitpur", area: "Patan", truckName: "Eco Truck", truckId: "#12548823", truckType: "medium duty", driver: "Anil Kumar", day: "Sunday", time: "~6:30 am" },
-
-        { id: 7, city: "Bhaktapur", area: "Durbar Square", truckName: "City Hauler", truckId: "#12548845", truckType: "light duty", driver: "Prakash Rai", day: "Monday", time: "~9:00 am" },
-        { id: 8, city: "Bhaktapur", area: "Durbar Square", truckName: "City Hauler", truckId: "#12548845", truckType: "light duty", driver: "Prakash Rai", day: "Thursday", time: "~9:00 am" },
-
-        { id: 9, city: "Pokhara", area: "Lakeside", truckName: "Valley Truck", truckId: "#12548867", truckType: "heavy duty", driver: "Binod Thapa", day: "Tuesday", time: "~7:30 am" },
-        { id: 10, city: "Pokhara", area: "Lakeside", truckName: "Valley Truck", truckId: "#12548867", truckType: "heavy duty", driver: "Binod Thapa", day: "Friday", time: "~7:30 am" },
-
-        { id: 11, city: "Kathmandu", area: "Baneshwor", truckName: "Mega Truck", truckId: "#12548889", truckType: "medium duty", driver: "Suresh Tamang", day: "Wednesday", time: "~8:30 am" },
-        { id: 12, city: "Kathmandu", area: "Baneshwor", truckName: "Mega Truck", truckId: "#12548889", truckType: "medium duty", driver: "Suresh Tamang", day: "Saturday", time: "~8:30 am" },
-
-        { id: 13, city: "Lalitpur", area: "Jawalakhel", truckName: "Green Hauler", truckId: "#12548901", truckType: "light duty", driver: "Ramesh Gurung", day: "Monday", time: "~6:00 am" },
-        { id: 14, city: "Lalitpur", area: "Jawalakhel", truckName: "Green Hauler", truckId: "#12548901", truckType: "light duty", driver: "Ramesh Gurung", day: "Thursday", time: "~6:00 am" },
-
-        { id: 15, city: "Kathmandu", area: "Kirtipur", truckName: "Swift Collector", truckId: "#12548923", truckType: "medium duty", driver: "Dipak Shrestha", day: "Tuesday", time: "~7:00 am" },
-        { id: 16, city: "Kathmandu", area: "Kirtipur", truckName: "Swift Collector", truckId: "#12548923", truckType: "medium duty", driver: "Dipak Shrestha", day: "Friday", time: "~7:00 am" },
-
-        { id: 17, city: "Bhaktapur", area: "Thimi", truckName: "Metro Truck", truckId: "#12548945", truckType: "heavy duty", driver: "Krishna Maharjan", day: "Wednesday", time: "~8:00 am" },
-        { id: 18, city: "Bhaktapur", area: "Thimi", truckName: "Metro Truck", truckId: "#12548945", truckType: "heavy duty", driver: "Krishna Maharjan", day: "Saturday", time: "~8:00 am" },
-
-        { id: 19, city: "Pokhara", area: "Mahendrapool", truckName: "Clean Truck", truckId: "#12548967", truckType: "light duty", driver: "Nabin Poudel", day: "Monday", time: "~9:30 am" },
-        { id: 20, city: "Pokhara", area: "Mahendrapool", truckName: "Clean Truck", truckId: "#12548967", truckType: "light duty", driver: "Nabin Poudel", day: "Thursday", time: "~9:30 am" }
-      ].map((s) => ({ ...s, label: `${s.city} — ${s.area}` })),
-    []
+      schedules.map((s) => ({
+        ...s,
+        label: `${s.city} — ${s.area}`
+      })),
+    [schedules]
   );
 
-  // ✅ Unique city+area locations
+  // ✅ Unique city+area locations: Derived from actual schedules
   const uniqueLocations = useMemo(() => {
     const seen = new Set();
     const list = [];
@@ -79,7 +59,7 @@ function SchedulePage() {
       );
     }
     if (searchQuery.trim()) return filteredSchedules;
-    return allSchedules.slice(0, 2);
+    return allSchedules.slice(0, 20); // Show more by default or keep logic? Original was slice(0, 2). Let's keep 2 or maybe slightly more? Original code: `return allSchedules.slice(0, 2);`
   }, [selectedLocation, searchQuery, filteredSchedules, allSchedules]);
 
   const handleSearch = () => {
@@ -104,6 +84,23 @@ function SchedulePage() {
   const handleKeyPress = (e) => {
     if (e.key === "Enter") handleSearch();
   };
+
+  if (loading) {
+    return (
+      <div className="bg-[#f5f1e8] min-h-screen flex items-center justify-center">
+        <p className="text-[#354f52] text-xl font-['Poppins',sans-serif]">Loading schedules...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#f5f1e8] min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-red-600 text-xl font-['Poppins',sans-serif]">{error}</p>
+        <button onClick={fetchAllData} className="px-4 py-2 bg-[#354f52] text-white rounded-lg">Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#f5f1e8] min-h-screen">
@@ -174,6 +171,9 @@ function SchedulePage() {
 
           {/* Schedule Cards */}
           <div className="space-y-6 sm:space-y-8">
+            {displaySchedules.length === 0 && !loading && (
+              <p className="text-[#354f52] italic">No schedules to display.</p>
+            )}
             {displaySchedules.map((schedule) => (
               <div
                 key={schedule.id}
@@ -225,7 +225,7 @@ function SchedulePage() {
                           Truck ID
                         </p>
                         <p className="font-['Poppins',sans-serif] text-sm sm:text-base text-[#354f52]">
-                          {schedule.truckId}
+                          {schedule.truckId || schedule.truckObjectId || "N/A"}
                         </p>
                       </div>
 
