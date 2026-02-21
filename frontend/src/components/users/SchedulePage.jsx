@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useScheduleStore from "../../stores/useScheduleStore";
 
@@ -7,12 +7,41 @@ function SchedulePage() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   // selectedLocation = { city, area, label }
   const navigate = useNavigate();
+  const pageRef = useRef(null);
 
   const { schedules, loading, error, fetchAllData } = useScheduleStore();
 
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData]);
+
+  useEffect(() => {
+    const container = pageRef.current;
+    if (!container) return;
+
+    const revealItems = container.querySelectorAll(".lp-reveal");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("lp-in-view");
+          } else {
+            entry.target.classList.remove("lp-in-view");
+          }
+        });
+      },
+      {
+        threshold: 0.18,
+        rootMargin: "0px 0px -8% 0px",
+      }
+    );
+
+    revealItems.forEach((item) => observer.observe(item));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const allSchedules = useMemo(
     () =>
@@ -103,12 +132,12 @@ function SchedulePage() {
   }
 
   return (
-    <div className="bg-[#f5f1e8] min-h-screen">
+    <div ref={pageRef} className="bg-[#f5f1e8] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Back Button */}
         <button
           onClick={handleBack}
-          className="bg-[#354f52] w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center hover:bg-[#2a3f41] transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 active:scale-95 transform mb-8 sm:mb-10"
+          className="lp-reveal lp-delay-0 bg-[#354f52] w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center hover:bg-[#2a3f41] transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 active:scale-95 transform mb-8 sm:mb-10"
           aria-label="Go back"
         >
           <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="#f5f1e8" strokeWidth="2.5">
@@ -117,12 +146,12 @@ function SchedulePage() {
         </button>
 
         {/* Page Title */}
-        <h2 className="font-['Outfit',sans-serif] font-bold text-3xl sm:text-4xl lg:text-5xl text-[#354f52] text-center mb-8 sm:mb-12">
+        <h2 className="lp-reveal lp-delay-1 font-['Outfit',sans-serif] font-bold text-3xl sm:text-4xl lg:text-5xl text-[#354f52] text-center mb-8 sm:mb-12">
           See Your Scheduling
         </h2>
 
         {/* Search Bar */}
-        <div className="max-w-3xl mx-auto mb-8 sm:mb-12">
+        <div className="lp-reveal lp-delay-2 max-w-3xl mx-auto mb-8 sm:mb-12">
           <div className="flex gap-0 shadow-lg rounded-full overflow-hidden">
             <input
               type="text"
@@ -164,7 +193,7 @@ function SchedulePage() {
         )}
 
         {/* Routine Pick Up Section */}
-        <div className="max-w-5xl mx-auto">
+        <div className="lp-reveal lp-delay-3 max-w-5xl mx-auto">
           <h3 className="font-['Poppins',sans-serif] font-semibold text-xl sm:text-2xl text-[#354f52] mb-6 sm:mb-8">
             Routine Pick Up Around Your Area:
           </h3>

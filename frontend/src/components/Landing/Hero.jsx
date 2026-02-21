@@ -19,14 +19,14 @@ export function Hero() {
 
   return (
     <section className="bg-[#f5f1e8] w-full py-16 md:py-24 px-8 md:px-16 lg:px-24">
-      <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div className="max-w-360 mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-8">
           <h2 className="font-['Outfit'] font-bold leading-[1.2]">
             <span className="text-[#354f52] text-4xl md:text-5xl lg:text-6xl block mb-2">
               Manage waste collection
             </span>
             <span
-              className="text-3xl md:text-4xl lg:text-5xl bg-gradient-to-r from-[#57a521] to-[#213f0d] bg-clip-text"
+              className="hero-gradient-text text-3xl md:text-4xl lg:text-5xl bg-linear-to-r from-[#57a521] via-[#3f7d18] to-[#213f0d] bg-clip-text"
               style={{ WebkitTextFillColor: 'transparent' }}
             >
               with precision and ease
@@ -56,7 +56,7 @@ export function Hero() {
             <img
               src={imgImage5}
               alt="Waste collection truck"
-              className="w-full h-auto rounded-2xl shadow-lg"
+              className="home-hero-image w-full h-auto rounded-2xl shadow-lg"
             />
           </div>
         </div>

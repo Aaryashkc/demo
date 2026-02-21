@@ -1,71 +1,115 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useUploadStore from '../../stores/useUploadStore';
 
 function UploadWastePage() {
   const navigate = useNavigate();
+  const {
+    uploadWasteImage,
+    loading: isSubmitting,
+    uploadProgress,
+    error: uploadError,
+    lastUpload,
+    clearError,
+    resetUploadState,
+  } = useUploadStore();
+
   const [category, setCategory] = useState('non-recyclable');
   const [level, setLevel] = useState('easy');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+  useEffect(() => {
+    if (uploadError) clearError();
+  }, [uploadError, clearError]);
 
   const categories = [
-    { 
-      id: 'recyclable', 
+    {
+      id: 'recyclable',
       label: 'Recyclable',
-      icon: '♻️',
-      description: 'Materials that can be processed and reused'
+      tag: 'RCY',
+      description: 'Materials that can be processed and reused.',
     },
-    { 
-      id: 'non-recyclable', 
+    {
+      id: 'non-recyclable',
       label: 'Non-recyclable',
-      icon: '🚫',
-      description: 'Items that cannot be recycled'
+      tag: 'NON',
+      description: 'Items that cannot be recycled safely.',
     },
-    { 
-      id: 'both', 
+    {
+      id: 'both',
       label: 'Mixed',
-      icon: '🔄',
-      description: 'Contains both recyclable and non-recyclable items'
-    }
+      tag: 'MIX',
+      description: 'Contains recyclable and non-recyclable items.',
+    },
   ];
 
   const levels = [
-    { 
-      id: 'easy', 
+    {
+      id: 'easy',
       label: 'Easy',
-      badge: '⭐',
-      description: 'Simple waste identification'
+      badge: 'L1',
+      description: 'Simple waste identification.',
     },
-    { 
-      id: 'medium', 
+    {
+      id: 'medium',
       label: 'Medium',
-      badge: '⭐⭐',
-      description: 'Moderate complexity'
+      badge: 'L2',
+      description: 'Moderate complexity sorting.',
     },
-    { 
-      id: 'hard', 
+    {
+      id: 'hard',
       label: 'Hard',
-      badge: '⭐⭐⭐',
-      description: 'Complex waste sorting'
-    }
+      badge: 'L3',
+      description: 'Complex waste sorting cases.',
+    },
   ];
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        alert('File size should be less than 5MB');
-        return;
-      }
-      setFile(selectedFile);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(selectedFile);
+  const selectedCategory = useMemo(
+    () => categories.find((item) => item.id === category),
+    [category]
+  );
+
+  const selectedLevel = useMemo(
+    () => levels.find((item) => item.id === level),
+    [level]
+  );
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 KB';
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
+  const applySelectedFile = (selectedFile) => {
+    if (!selectedFile) return;
+
+    if (!ALLOWED_TYPES.includes(selectedFile.type)) {
+      alert('Only JPEG, PNG and WebP images are allowed');
+      return;
     }
+
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      alert('File size should be less than 5MB');
+      return;
+    }
+
+    setFile(selectedFile);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files?.[0];
+    applySelectedFile(selectedFile);
   };
 
   const handleDragOver = (e) => {
@@ -81,19 +125,8 @@ function UploadWastePage() {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type.startsWith('image/')) {
-      if (droppedFile.size > 5 * 1024 * 1024) {
-        alert('File size should be less than 5MB');
-        return;
-      }
-      setFile(droppedFile);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(droppedFile);
-    }
+    const droppedFile = e.dataTransfer.files?.[0];
+    applySelectedFile(droppedFile);
   };
 
   const handleRemoveImage = () => {
@@ -107,258 +140,268 @@ function UploadWastePage() {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log({
-        category,
-        level,
-        file,
-        fileName: file.name,
-        fileSize: file.size,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Reset form
+    const result = await uploadWasteImage(file, category, level);
+
+    if (result.success) {
+      setJustSubmitted(true);
       setFile(null);
       setPreview(null);
       setCategory('non-recyclable');
       setLevel('easy');
-      setIsSubmitting(false);
-      
-      // Navigate to searching page
-      navigate('/searching');
-    }, 1500);
+
+      const payload = result.data;
+      if (payload?.url && payload?.publicId) {
+        setTimeout(() => {
+          resetUploadState();
+          setJustSubmitted(false);
+          navigate('/searching');
+        }, 2000);
+      } else {
+        resetUploadState();
+        setJustSubmitted(false);
+        navigate('/searching');
+      }
+    } else {
+      alert(result.error || 'Upload failed');
+    }
   };
 
   return (
-    <div className="app-bg">
-      <div className="app-container">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-[var(--primary)] mb-3">
-            Upload Waste Image
-          </h1>
-          <p className="text-[var(--primary)]/70 text-lg">
-            Help us categorize waste items by uploading images and selecting appropriate categories
-          </p>
-        </div>
-
-        {/* Select Categories */}
-        <div className="mb-10">
-          <h2 className="text-2xl font-semibold text-[var(--primary)] mb-6">
-            Select Category
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {categories.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setCategory(item.id)}
-                className={`p-6 rounded-2xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left
-                  ${
-                    category === item.id
-                      ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-xl scale-105'
-                      : 'border-[var(--primary)]/30 bg-white text-[var(--primary)] hover:border-[var(--accent)]'
-                  }
-                `}
-              >
-                <div className="text-3xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{item.label}</h3>
-                <p className={`text-sm ${category === item.id ? 'text-white/80' : 'text-[var(--primary)]/60'}`}>
-                  {item.description}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Select Level */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold text-[var(--primary)] mb-6">
-            Select Difficulty Level
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {levels.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setLevel(item.id)}
-                className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 text-left
-                  ${
-                    level === item.id
-                      ? 'border-[var(--primary)] bg-[var(--primary)] text-white shadow-lg scale-105'
-                      : 'border-[var(--primary)]/30 bg-white text-[var(--primary)] hover:border-[var(--primary)]'
-                  }
-                `}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-lg">{item.label}</h3>
-                  <span className="text-xl">{item.badge}</span>
-                </div>
-                <p className={`text-sm ${level === item.id ? 'text-white/80' : 'text-[var(--primary)]/60'}`}>
-                  {item.description}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Upload Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-[var(--primary)] mb-6">
-            Upload Image
-          </h2>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* Upload Box */}
-            <label
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`relative w-full h-80 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all
-                ${isDragging 
-                  ? 'border-[var(--accent)] bg-[var(--accent)]/10 scale-105' 
-                  : 'border-[var(--primary)]/40 bg-white hover:border-[var(--accent)] hover:bg-[var(--accent)]/5'
-                }
-              `}
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#fcf8f1_0%,_#f3ebdf_45%,_#ecdfcb_100%)]">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12">
+        <section className="bg-white/70 backdrop-blur-sm border border-[#354f52]/15 rounded-3xl p-6 sm:p-8 shadow-[0_18px_50px_rgba(53,79,82,0.12)] mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="inline-flex items-center rounded-full bg-[#296200]/10 px-3 py-1 text-xs font-semibold tracking-wide text-[#296200] uppercase">
+                Waste Submission
+              </p>
+              <h1 className="mt-3 font-['Outfit',sans-serif] text-3xl sm:text-4xl font-semibold text-[#354f52] leading-tight">
+                Upload and classify waste images
+              </h1>
+              <p className="mt-2 font-['Poppins',sans-serif] text-sm sm:text-base text-[#5d6c6e] max-w-2xl">
+                Select category and difficulty, then upload a clear image for faster processing.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/customer-dashboard')}
+              className="self-start md:self-auto rounded-xl border border-[#354f52]/30 px-4 py-2 text-sm font-medium text-[#354f52] hover:bg-white transition"
             >
-              {!preview ? (
-                <>
-                  <svg
-                    className="w-16 h-16 mb-4 transition-transform hover:scale-110"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="var(--accent)"
-                    strokeWidth="2"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" 
-                    />
-                  </svg>
-                  <p className="text-lg font-medium text-[var(--primary)] mb-2">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-sm text-[var(--primary)]/60">
-                    PNG, JPG, GIF up to 5MB
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </>
-              ) : (
-                <div className="relative w-full h-full p-4">
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="w-full h-full object-contain rounded-xl"
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleRemoveImage();
-                    }}
-                    className="absolute top-6 right-6 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              Back to Dashboard
+            </button>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 items-start">
+          <div className="xl:col-span-2 space-y-6">
+            <section className="rounded-2xl border border-[#354f52]/15 bg-white p-5 sm:p-6 shadow-sm">
+              <h2 className="font-['Outfit',sans-serif] text-xl sm:text-2xl font-semibold text-[#354f52] mb-4">
+                1. Waste category
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                {categories.map((item) => {
+                  const selected = category === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setCategory(item.id)}
+                      className={`rounded-xl border p-4 text-left transition-all ${
+                        selected
+                          ? 'border-[#296200] bg-[#296200] text-white shadow-md'
+                          : 'border-[#354f52]/20 bg-[#fdfcf9] text-[#354f52] hover:border-[#296200]/60 hover:bg-[#f6fbf2]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-xs font-bold tracking-wider ${selected ? 'text-white/80' : 'text-[#296200]'}`}>
+                          {item.tag}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-base">{item.label}</h3>
+                      <p className={`mt-1 text-sm ${selected ? 'text-white/80' : 'text-[#5d6c6e]'}`}>
+                        {item.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-[#354f52]/15 bg-white p-5 sm:p-6 shadow-sm">
+              <h2 className="font-['Outfit',sans-serif] text-xl sm:text-2xl font-semibold text-[#354f52] mb-4">
+                2. Difficulty level
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                {levels.map((item) => {
+                  const selected = level === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setLevel(item.id)}
+                      className={`rounded-xl border p-4 text-left transition-all ${
+                        selected
+                          ? 'border-[#354f52] bg-[#354f52] text-white shadow-md'
+                          : 'border-[#354f52]/20 bg-[#fdfcf9] text-[#354f52] hover:border-[#354f52]/60 hover:bg-[#f8f8f7]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-base">{item.label}</h3>
+                        <span className={`text-xs font-bold tracking-wider ${selected ? 'text-white/80' : 'text-[#296200]'}`}>
+                          {item.badge}
+                        </span>
+                      </div>
+                      <p className={`text-sm ${selected ? 'text-white/80' : 'text-[#5d6c6e]'}`}>
+                        {item.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-[#354f52]/15 bg-white p-5 sm:p-6 shadow-sm">
+              <h2 className="font-['Outfit',sans-serif] text-xl sm:text-2xl font-semibold text-[#354f52] mb-4">
+                3. Upload image
+              </h2>
+
+              <label
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative block w-full min-h-[280px] sm:min-h-[340px] rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
+                  isDragging
+                    ? 'border-[#296200] bg-[#f1f9e8]'
+                    : 'border-[#354f52]/35 bg-[#fcfbf8] hover:border-[#296200]/70 hover:bg-[#f7fbf1]'
+                }`}
+              >
+                {!preview ? (
+                  <div className="h-full min-h-[280px] sm:min-h-[340px] flex flex-col items-center justify-center text-center px-6">
+                    <svg
+                      className="w-14 h-14 text-[#296200] mb-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                  </button>
-                </div>
-              )}
-            </label>
-
-            {/* Info Card */}
-            <div className="bg-white p-8 rounded-2xl border border-[var(--primary)]/20 shadow-sm">
-              <h3 className="text-xl font-semibold text-[var(--primary)] mb-4">
-                Submission Summary
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-[var(--primary)]/10">
-                  <span className="text-[var(--primary)]/70">Category:</span>
-                  <span className="font-semibold text-[var(--primary)] capitalize">
-                    {categories.find(c => c.id === category)?.label}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center pb-3 border-b border-[var(--primary)]/10">
-                  <span className="text-[var(--primary)]/70">Level:</span>
-                  <span className="font-semibold text-[var(--primary)] capitalize">
-                    {levels.find(l => l.id === level)?.label}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center pb-3 border-b border-[var(--primary)]/10">
-                  <span className="text-[var(--primary)]/70">Image:</span>
-                  <span className="font-semibold text-[var(--primary)]">
-                    {file ? file.name : 'Not uploaded'}
-                  </span>
-                </div>
-
-                {file && (
-                  <div className="flex justify-between items-center pb-3">
-                    <span className="text-[var(--primary)]/70">File size:</span>
-                    <span className="font-semibold text-[var(--primary)]">
-                      {(file.size / 1024).toFixed(2)} KB
-                    </span>
+                    <p className="font-semibold text-[#354f52] text-lg">Drop your file here or click to browse</p>
+                    <p className="mt-2 text-sm text-[#5d6c6e]">JPEG, PNG, WebP up to 5MB</p>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative p-3 sm:p-4 h-full min-h-[280px] sm:min-h-[340px]">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="w-full h-full object-contain rounded-xl bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleRemoveImage();
+                      }}
+                      className="absolute top-5 right-5 rounded-full bg-[#c23b3b] text-white p-2 shadow hover:bg-[#ab2f2f] transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 )}
+              </label>
+
+              {uploadError && <p className="mt-4 text-sm text-red-600">{uploadError}</p>}
+            </section>
+
+            <section className="rounded-2xl border border-[#354f52]/15 bg-[linear-gradient(120deg,#f3f9ed,#f9f5ec)] p-5 sm:p-6 shadow-sm">
+              <h3 className="font-['Outfit',sans-serif] text-lg sm:text-xl font-semibold text-[#354f52] mb-4">
+                Tips for better image quality
+              </h3>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-[#4f5f62]">
+                <li className="flex items-start gap-2"><span className="text-[#296200]">+</span><span>Use clear lighting and avoid dark shadows.</span></li>
+                <li className="flex items-start gap-2"><span className="text-[#296200]">+</span><span>Keep the waste item centered in the frame.</span></li>
+                <li className="flex items-start gap-2"><span className="text-[#296200]">+</span><span>Avoid blurry or low-resolution images.</span></li>
+                <li className="flex items-start gap-2"><span className="text-[#296200]">+</span><span>Use files under 5MB for faster upload.</span></li>
+              </ul>
+            </section>
+          </div>
+
+          <aside className="xl:sticky xl:top-6 rounded-2xl border border-[#354f52]/15 bg-white p-5 sm:p-6 shadow-sm">
+            <h3 className="font-['Outfit',sans-serif] text-xl font-semibold text-[#354f52] mb-4">
+              Submission summary
+            </h3>
+
+            <div className="space-y-4">
+              <div className="rounded-xl bg-[#f7f5ef] p-4 border border-[#354f52]/10">
+                <p className="text-xs uppercase tracking-wide text-[#5d6c6e] mb-1">Category</p>
+                <p className="font-semibold text-[#354f52]">{selectedCategory?.label}</p>
               </div>
 
-              <button
-                onClick={handleSubmit}
-                disabled={!file || isSubmitting}
-                className={`w-full mt-8 py-4 rounded-xl font-semibold text-lg transition-all transform
-                  ${!file || isSubmitting
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl'
-                  }
-                `}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Submitting...
-                  </span>
-                ) : (
-                  'Submit Waste Data'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+              <div className="rounded-xl bg-[#f7f5ef] p-4 border border-[#354f52]/10">
+                <p className="text-xs uppercase tracking-wide text-[#5d6c6e] mb-1">Difficulty</p>
+                <p className="font-semibold text-[#354f52]">{selectedLevel?.label}</p>
+              </div>
 
-        {/* Tips Section */}
-        <div className="mt-12 bg-gradient-to-r from-[var(--accent)]/10 to-[var(--primary)]/10 p-8 rounded-2xl border border-[var(--primary)]/20">
-          <h3 className="text-xl font-semibold text-[var(--primary)] mb-4">
-            💡 Tips for Best Results
-          </h3>
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[var(--primary)]/80">
-            <li className="flex items-start gap-2">
-              <span className="text-[var(--accent)] mt-1">✓</span>
-              <span>Ensure good lighting for clear images</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-[var(--accent)] mt-1">✓</span>
-              <span>Center the waste item in the frame</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-[var(--accent)] mt-1">✓</span>
-              <span>Avoid blurry or out-of-focus images</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-[var(--accent)] mt-1">✓</span>
-              <span>Use images less than 5MB in size</span>
-            </li>
-          </ul>
+              <div className="rounded-xl bg-[#f7f5ef] p-4 border border-[#354f52]/10">
+                <p className="text-xs uppercase tracking-wide text-[#5d6c6e] mb-1">Image file</p>
+                <p className="font-semibold text-[#354f52] truncate" title={file?.name || 'No file selected'}>
+                  {file ? file.name : lastUpload?.url ? 'Uploaded image available' : 'No file selected'}
+                </p>
+                {file && <p className="mt-1 text-xs text-[#5d6c6e]">{formatFileSize(file.size)}</p>}
+              </div>
+
+              {isSubmitting && uploadProgress > 0 && (
+                <div className="rounded-xl border border-[#354f52]/10 p-4">
+                  <div className="h-2 rounded-full bg-[#354f52]/15 overflow-hidden">
+                    <div
+                      className="h-full bg-[#296200] transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-sm text-[#5d6c6e]">Uploading {uploadProgress}%</p>
+                </div>
+              )}
+
+              {justSubmitted && lastUpload?.url && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                  <p className="text-sm font-semibold text-green-800 mb-2">Upload successful</p>
+                  <img
+                    src={lastUpload.url}
+                    alt="Uploaded waste"
+                    className="w-full h-32 object-contain rounded-lg border border-green-200 bg-white"
+                  />
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!file || isSubmitting || justSubmitted}
+              className={`mt-6 w-full rounded-xl py-3.5 font-semibold text-base transition-all ${
+                !file || isSubmitting || justSubmitted
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-[#296200] text-white hover:bg-[#245400] shadow-md'
+              }`}
+            >
+              {isSubmitting
+                ? uploadProgress > 0
+                  ? `Uploading... ${uploadProgress}%`
+                  : 'Submitting...'
+                : justSubmitted
+                ? 'Redirecting...'
+                : 'Submit Waste Data'}
+            </button>
+          </aside>
         </div>
       </div>
     </div>

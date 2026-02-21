@@ -1,10 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function CustomerLandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pageRef = useRef(null);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const container = pageRef.current;
+    if (!container) return;
+
+    const revealItems = container.querySelectorAll('.lp-reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('lp-in-view');
+          } else {
+            entry.target.classList.remove('lp-in-view');
+          }
+        });
+      },
+      {
+        threshold: 0.18,
+        rootMargin: '0px 0px -8% 0px',
+      }
+    );
+
+    revealItems.forEach((item) => observer.observe(item));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -29,14 +58,14 @@ function CustomerLandingPage() {
   };
 
   return (
-    <div className="bg-[#f5f1e8] min-h-screen relative overflow-hidden">
+    <div ref={pageRef} className="bg-[#f5f1e8] min-h-screen relative overflow-hidden">
       {/* Main Content */}
       <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="w-full max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
 
             {/* Left Side - Content */}
-            <div className="w-full max-w-2xl mx-auto lg:mx-0">
+            <div className="lp-reveal lp-delay-0 w-full max-w-2xl mx-auto lg:mx-0">
               {/* Main Heading */}
               <h1 className="font-['Outfit',sans-serif] font-bold text-4xl sm:text-5xl lg:text-6xl xl:text-7xl text-[#354f52] mb-4 sm:mb-6 leading-tight">
                 Manage waste collection
@@ -77,7 +106,7 @@ function CustomerLandingPage() {
             </div>
 
             {/* Right Side - Image */}
-            <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl mx-auto lg:mx-0">
+            <div className="lp-reveal lp-delay-1 w-full max-w-md lg:max-w-lg xl:max-w-xl mx-auto lg:mx-0">
               <div
                 className="relative w-full aspect-square"
                 role="img"

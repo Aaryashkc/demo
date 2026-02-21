@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cron from "node-cron";
 import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/auth.route.js";
@@ -10,8 +11,13 @@ import driverRoutes from "./routes/driver.route.js";
 import userRoutes from "./routes/user.route.js";
 import scheduleRoutes from "./routes/schedule.route.js";
 import locationRoutes from "./routes/location.route.js";
+import { cleanupExpiredUploads } from "./controllers/upload.controller.js";
 
 dotenv.config();
+
+// Single cron schedule guard so hot reload (e.g. nodemon) does not register multiple jobs
+let cleanupCronScheduled = false;
+const CRON_SCHEDULE = "0 2 * * *"; // 2:00 AM every day (server local time)
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,6 +60,21 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Optional: cron endpoint for external scheduler (e.g. Vercel Cron). Use CRON_SECRET in query.
+app.get("/api/cron/cleanup-uploads", async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.query.secret !== secret) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  try {
+    const result = await cleanupExpiredUploads();
+    return res.status(200).json({ message: "Cleanup completed", ...result });
+  } catch (err) {
+    console.error("Cleanup error:", err);
+    return res.status(500).json({ message: "Cleanup failed", error: err.message });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
@@ -67,4 +88,16 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`CORS enabled for: ${process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || 'http://localhost:5173') : 'all origins (development)'}`);
   connectDB();
+
+  // 30-day Cloudinary cleanup: run daily at 2:00 AM; single schedule to avoid duplicate jobs on hot reload
+  if (!cleanupCronScheduled) {
+    cleanupCronScheduled = true;
+    cron.schedule(CRON_SCHEDULE, () => {
+      cleanupExpiredUploads()
+        .then((r) => {
+          if (r.total > 0) console.log(`Cleanup: removed ${r.deleted} expired waste upload(s), errors=${r.errors}`);
+        })
+        .catch((e) => console.error("Cleanup error:", e));
+    });  
+  }
 });

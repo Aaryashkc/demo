@@ -44,6 +44,14 @@ SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 FROM_EMAIL=noreply@wastemanagement.com
+
+# Cloudinary (required for waste image uploads)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# Optional: protect cron cleanup endpoint (set to a secret string)
+# CRON_SECRET=your-cron-secret
 ```
 
 ### Frontend (.env in frontend directory)
@@ -182,6 +190,32 @@ Content-Type: application/json
   "orgId": "org-id"
 }
 ```
+
+## Cloudinary image uploads
+
+Customer waste images are uploaded to Cloudinary and metadata is stored in MongoDB. Uploads are automatically deleted after 30 days to optimize storage.
+
+### Required env vars (backend)
+
+- `CLOUDINARY_CLOUD_NAME` – from Cloudinary dashboard
+- `CLOUDINARY_API_KEY` – from Cloudinary dashboard
+- `CLOUDINARY_API_SECRET` – from Cloudinary dashboard
+
+Optional: `CRON_SECRET` – if set, the cleanup cron HTTP endpoint requires `?secret=<CRON_SECRET>`.
+
+### How cleanup works
+
+- A **node-cron** job runs daily at **2:00 AM** (server local time).
+- Records with `expiresAt <= now` are processed: each asset is deleted from Cloudinary, then the MongoDB record is removed.
+- If Cloudinary delete fails for a record, the DB record is **not** deleted and the error is logged (idempotent; safe to rerun).
+- Only one cron schedule is registered per process so hot reload (e.g. nodemon) does not spawn duplicate jobs.
+- You can also trigger cleanup via HTTP: `GET /api/cron/cleanup-uploads?secret=<CRON_SECRET>` (if `CRON_SECRET` is set).
+
+### How to test upload and deletion locally
+
+1. Set the three Cloudinary env vars in `.env` and restart the backend.
+2. Log in as a customer, go to **Upload Waste**, choose category/level, select a JPEG/PNG/WebP image (≤ 5MB), and submit. Confirm the image appears in Cloudinary under `waste_uploads/<userId>/` and that the UI shows the uploaded image URL after success.
+3. To test cleanup without waiting 30 days: in MongoDB, set one record’s `expiresAt` to a past date (e.g. `db.wasteuploads.updateOne({}, { $set: { expiresAt: new Date('2000-01-01') } })`), then call `GET /api/cron/cleanup-uploads` (with `?secret=...` if you set `CRON_SECRET`). Confirm the asset is removed from Cloudinary and the record is deleted from MongoDB. Check server logs for the cleanup summary (e.g. `Cleanup: expired=1 cloudDeleted=1 dbDeleted=1 errors=0`).
 
 ## OTP Authentication Flow
 

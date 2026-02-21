@@ -28,6 +28,7 @@ export const ROLE_ROUTES = {
     { path: '/customer-landing', label: 'Home' },
     { path: '/customer-dashboard', label: 'Dashboard' },
     { path: '/about-us', label: 'About Us' },
+    { path: '/schedule', label: 'Schedule' },
     { path: '/our-team', label: 'Our Team' },
     { path: '/contact-us', label: 'Contact Us' },
   ],

@@ -5,8 +5,8 @@ import crypto from 'crypto';
  * @returns {string} - 6-digit OTP code
  */
 export const generateOTP = () => {
-  // Generate random number between 100000 and 999999
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // Use crypto.randomInt for cryptographically secure random OTP
+  return crypto.randomInt(100000, 1000000).toString();
 };
 
 /**
@@ -25,8 +25,18 @@ export const hashOTP = (otp) => {
  * @returns {boolean} - True if OTP matches
  */
 export const verifyOTP = (plainOTP, hashedOTP) => {
+  if (!hashedOTP) return false;
+
   const hashedInput = hashOTP(plainOTP);
-  return hashedInput === hashedOTP;
+
+  try {
+    const a = Buffer.from(hashedInput, 'hex');
+    const b = Buffer.from(hashedOTP, 'hex');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch (err) {
+    return false;
+  }
 };
 
 /**

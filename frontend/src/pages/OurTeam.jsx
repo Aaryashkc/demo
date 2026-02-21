@@ -31,46 +31,11 @@ function FadeIn({ children, delay = 0, className = '' }) {
 
 const TEAM = [
     {
-        name: 'Rajesh Sharma',
+        name: 'Prasanna Maskey',
         role: 'CEO & Founder',
         bio: 'Passionate about sustainable cities and smart infrastructure.',
         avatar: '👨‍💼',
         color: 'bg-[#354f52]',
-    },
-    {
-        name: 'Priya Patel',
-        role: 'Head of Operations',
-        bio: 'Optimizing routes and schedules to keep every street clean.',
-        avatar: '👩‍💻',
-        color: 'bg-[#296200]',
-    },
-    {
-        name: 'Arjun KC',
-        role: 'Lead Engineer',
-        bio: 'Building the tech that powers real-time waste tracking.',
-        avatar: '👨‍🔧',
-        color: 'bg-[#84a98c]',
-    },
-    {
-        name: 'Sita Devi',
-        role: 'Community Manager',
-        bio: 'Connecting neighborhoods with waste collection services.',
-        avatar: '👩‍🌾',
-        color: 'bg-[#52796f]',
-    },
-    {
-        name: 'Bikash Thapa',
-        role: 'Fleet Manager',
-        bio: 'Ensuring every truck is on the road and running efficiently.',
-        avatar: '🚛',
-        color: 'bg-[#354f52]',
-    },
-    {
-        name: 'Anita Gurung',
-        role: 'UX Designer',
-        bio: 'Making waste management simple and delightful to use.',
-        avatar: '🎨',
-        color: 'bg-[#296200]',
     },
 ];
 

@@ -1,7 +1,7 @@
 import { Facebook, Instagram, Linkedin, Youtube, X } from "lucide-react";
 
 function SocialIcon({ Icon, label }) {
-  if (!Icon) return null; // prevents lucide from crashing on undefined icon
+  if (!Icon) return null;
 
   return (
     <button
@@ -16,10 +16,10 @@ function SocialIcon({ Icon, label }) {
 
 export function Footer() {
   return (
-    <footer className="bg-[#354f52] w-full px-8 md:px-16 py-16 md:py-20">
-      <div className="max-w-[1280px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          <div>
+    <footer className="bg-[#354f52] w-full py-16 md:py-20">
+      <div className="mx-auto max-w-360 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 mb-14 md:mb-16">
+          <div className="text-left">
             <h3 className="text-[#f5f1e8] font-semibold text-base mb-4">Product</h3>
             <ul className="space-y-2">
               {["Dashboard", "Features", "Pricing", "Updates", "Company"].map((link) => (
@@ -32,7 +32,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="text-left">
             <h3 className="text-[#f5f1e8] font-semibold text-base mb-4">Support</h3>
             <ul className="space-y-2">
               {["Contact", "Help", "Careers", "Resources", "Blog"].map((link) => (
@@ -45,7 +45,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="text-left">
             <h3 className="text-[#f5f1e8] font-semibold text-base mb-4">Guides</h3>
             <ul className="space-y-2">
               {["API", "Docs", "Status", "Community", "Legal"].map((link) => (
@@ -58,18 +58,21 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="text-left">
             <h3 className="text-[#f5f1e8] font-semibold text-base mb-4">Updates</h3>
-            <p className="text-[#f5f1e8] text-base mb-6">
+            <p className="text-[#f5f1e8] text-base mb-6 max-w-md">
               Get the latest news and feature releases delivered straight to your inbox.
             </p>
-            <div className="flex gap-4 mb-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3">
               <input
                 type="email"
                 placeholder="Enter email"
-                className="flex-1 bg-transparent border border-[#f5f1e8] px-4 py-3 text-[#f5f1e8] placeholder:text-[rgba(218,255,191,0.6)] focus:outline-none focus:ring-2 focus:ring-[#f5f1e8]"
+                className="w-full sm:flex-1 bg-transparent border border-[#f5f1e8] px-4 py-3 text-[#f5f1e8] placeholder:text-[rgba(218,255,191,0.6)] focus:outline-none focus:ring-2 focus:ring-[#f5f1e8]"
               />
-              <button className="border border-[#f5f1e8] text-[#f5f1e8] px-6 py-3 hover:bg-[#f5f1e8] hover:text-[#354f52] transition-all" type="button">
+              <button
+                className="border border-[#f5f1e8] text-[#f5f1e8] px-6 py-3 sm:py-3.5 hover:bg-[#f5f1e8] hover:text-[#354f52] transition-all"
+                type="button"
+              >
                 Join
               </button>
             </div>
@@ -79,17 +82,17 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-[#f5f1e8] mb-8" />
+        <div className="border-t border-[#f5f1e8]/70 mb-8" />
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-wrap items-center gap-6 text-[#f5f1e8] text-sm">
-            <p>© 2025 Safabin Dashboard. All rights reserved.</p>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[#f5f1e8] text-sm">
+            <p>© {new Date().getFullYear()} Safabin Dashboard. All rights reserved.</p>
             <a href="#" className="underline hover:opacity-70 transition-opacity">Privacy Policy</a>
             <a href="#" className="underline hover:opacity-70 transition-opacity">Terms of Service</a>
             <a href="#" className="underline hover:opacity-70 transition-opacity">Cookie Settings</a>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 self-start md:self-auto">
             <SocialIcon Icon={Facebook} label="Facebook" />
             <SocialIcon Icon={Instagram} label="Instagram" />
             <SocialIcon Icon={X} label="X" />
