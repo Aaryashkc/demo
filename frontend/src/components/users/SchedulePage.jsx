@@ -15,7 +15,10 @@ function SchedulePage() {
     fetchAllData();
   }, [fetchAllData]);
 
+  // Run observer after main content is in the DOM (when loading is false). On first mount we're loading so ref isn't attached yet.
   useEffect(() => {
+    if (loading) return;
+
     const container = pageRef.current;
     if (!container) return;
 
@@ -31,17 +34,15 @@ function SchedulePage() {
         });
       },
       {
-        threshold: 0.18,
-        rootMargin: "0px 0px -8% 0px",
+        threshold: 0.1,
+        rootMargin: "0px 0px -5% 0px",
       }
     );
 
     revealItems.forEach((item) => observer.observe(item));
 
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
+    return () => observer.disconnect();
+  }, [loading]);
 
   const allSchedules = useMemo(
     () =>
@@ -134,10 +135,10 @@ function SchedulePage() {
   return (
     <div ref={pageRef} className="bg-[#f5f1e8] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* Back Button */}
+        {/* Back Button - visible immediately so page is never blank */}
         <button
           onClick={handleBack}
-          className="lp-reveal lp-delay-0 bg-[#354f52] w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center hover:bg-[#2a3f41] transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 active:scale-95 transform mb-8 sm:mb-10"
+          className="lp-reveal lp-in-view lp-delay-0 bg-[#354f52] w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center hover:bg-[#2a3f41] transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 active:scale-95 transform mb-8 sm:mb-10"
           aria-label="Go back"
         >
           <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="#f5f1e8" strokeWidth="2.5">
@@ -145,8 +146,8 @@ function SchedulePage() {
           </svg>
         </button>
 
-        {/* Page Title */}
-        <h2 className="lp-reveal lp-delay-1 font-['Outfit',sans-serif] font-bold text-3xl sm:text-4xl lg:text-5xl text-[#354f52] text-center mb-8 sm:mb-12">
+        {/* Page Title - visible immediately */}
+        <h2 className="lp-reveal lp-in-view lp-delay-1 font-['Outfit',sans-serif] font-bold text-3xl sm:text-4xl lg:text-5xl text-[#354f52] text-center mb-8 sm:mb-12">
           See Your Scheduling
         </h2>
 

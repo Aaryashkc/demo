@@ -5,6 +5,7 @@ import { Features } from '../components/Landing/Features'
 import { Services } from '../components/Landing/Service'
 import { FAQ } from '../components/Landing/FAQ'
 import { CTASection } from '../components/Landing/CTASection'
+import ScrollTriggered from './testing'
 
 const HomePage = () => {
   const pageRef = useRef(null)

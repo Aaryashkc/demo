@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* Base */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Landing page */
+.landing-page-shell {
+  position: relative;
+  overflow: clip;
+  padding: 0.6rem 0 1.4rem;
+  background: linear-gradient(180deg, #f7f4ec 0%, #f5f1e8 100%);
+}
+
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.lp-reveal.lp-in-view {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 700ms ease-out, transform 700ms ease-out;
+}
+
+.lp-delay-0 {
+  transition-delay: 60ms;
+}
+
+.lp-delay-1 {
+  transition-delay: 120ms;
+}
+
+.lp-delay-2 {
+  transition-delay: 180ms;
+}
+
+.lp-delay-3 {
+  transition-delay: 240ms;
+}
+
+.lp-delay-4 {
+  transition-delay: 300ms;
+}
+
+.lp-delay-5 {
+  transition-delay: 360ms;
+}
+
+.lp-block {
+  position: relative;
+}
+
+.lp-block + .lp-block {
+  margin-top: 0.8rem;
+}
+
+.lp-block + .lp-block::before {
+  content: '';
+  position: absolute;
+  top: -0.35rem;
+  left: 50%;
+  width: min(240px, 48vw);
+  height: 1px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(53, 79, 82, 0),
+    rgba(53, 79, 82, 0.25),
+    rgba(53, 79, 82, 0)
+  );
+  pointer-events: none;
+}
+
+.lp-soft-panel section {
+  border-radius: 16px;
+  border: 1px solid rgba(53, 79, 82, 0.08);
+  box-shadow: 0 10px 24px rgba(53, 79, 82, 0.05);
+}
+
+.lp-block-hero section,
+.lp-block-cta section {
+  border-radius: 18px;
+}

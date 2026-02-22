@@ -4,21 +4,34 @@ import { useNavigate } from 'react-router-dom';
 function CustomerLandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pageRef = useRef(null);
-
   const navigate = useNavigate();
 
   useEffect(() => {
     const container = pageRef.current;
     if (!container) return;
 
-    const revealItems = container.querySelectorAll('.lp-reveal');
+    const revealItems = Array.from(container.querySelectorAll('.lp-reveal'));
+    if (!revealItems.length) return;
+
+    const revealAll = () => {
+      revealItems.forEach((item) => item.classList.add('lp-in-view'));
+    };
+
+    if (
+      typeof window === 'undefined' ||
+      typeof IntersectionObserver === 'undefined' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      revealAll();
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('lp-in-view');
-          } else {
-            entry.target.classList.remove('lp-in-view');
+            observer.unobserve(entry.target);
           }
         });
       },
@@ -49,84 +62,95 @@ function CustomerLandingPage() {
 
   const handleCustomerDashboard = () => {
     console.log('Navigate to customer dashboard');
-    navigate('/customer-dashboard')
+    navigate('/customer-dashboard');
   };
 
   const handleRequestPickup = () => {
-    console.log('Navigate to request pickup');
-    // navigate('/customer/request-pickup')
+    navigate('/customer/request-pickup');
   };
 
   return (
-    <div ref={pageRef} className="bg-[#f5f1e8] min-h-screen relative overflow-hidden">
-      {/* Main Content */}
-      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div className="w-full max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+    <div ref={pageRef} className="min-h-screen relative overflow-hidden bg-[#f7f4ec]">
+      <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-white/80 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-white/70 to-transparent pointer-events-none" />
 
-            {/* Left Side - Content */}
-            <div className="lp-reveal lp-delay-0 w-full max-w-2xl mx-auto lg:mx-0">
-              {/* Main Heading */}
-              <h1 className="font-['Outfit',sans-serif] font-bold text-4xl sm:text-5xl lg:text-6xl xl:text-7xl text-[#354f52] mb-4 sm:mb-6 leading-tight">
-                Manage waste collection
-              </h1>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-16 sm:pb-24">
+        <section className="lp-reveal lp-delay-0 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 rounded-3xl border border-[#355157]/15 bg-white/85 backdrop-blur p-6 sm:p-8 shadow-[0_24px_40px_rgba(53,81,87,0.12)]">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#354f52]/20 bg-white px-4 py-2 text-sm font-['Manrope',sans-serif] font-semibold text-[#2f5e61]">
+              Customer Portal
+            </span>
 
-              <h2 className="font-['Outfit',sans-serif] font-bold text-4xl sm:text-5xl lg:text-6xl xl:text-7xl text-[#296200] mb-6 sm:mb-8 leading-tight">
-                with precision and ease
-              </h2>
+            <h1 className="mt-6 font-['Outfit',sans-serif] font-black text-4xl sm:text-5xl text-[#213a3d] leading-[1.05]">
+              Manage your waste pickup requests in one place.
+            </h1>
 
-              {/* Description */}
-              <p className="font-['Poppins',sans-serif] text-base sm:text-lg lg:text-xl text-[#354f52] mb-8 sm:mb-12 max-w-xl leading-relaxed">
-                EcoWaste Dashboard streamlines your entire waste management operation. Track routes, assign drivers, and respond to requests in real time.
-              </p>
+            <p className="mt-5 max-w-xl font-['Manrope',sans-serif] text-base sm:text-lg text-[#355157] leading-relaxed">
+              Create requests, follow status updates, and stay organized with a simple customer dashboard.
+            </p>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-wrap gap-4 sm:gap-6">
-                <button
-                  onClick={handleGetStarted}
-                  className="bg-[#354f52] flex items-center justify-center gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl hover:bg-[#2a3f41] transition-all active:scale-95 transform focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 shadow-lg"
-                >
-                  <span className="font-['Inter',sans-serif] font-medium text-[#f5f1e8] text-base sm:text-lg">
-                    Dashboard
-                  </span>
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" stroke="#f5f1e8" />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={handleLearnMore}
-                  className="bg-transparent border-2 border-[#354f52] flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 rounded-2xl hover:bg-[#354f52] hover:text-white transition-all active:scale-95 transform focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2"
-                >
-                  <span className="font-['Inter',sans-serif] font-medium text-[#354f52] hover:text-white text-base sm:text-lg">
-                    Learn More
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Right Side - Image */}
-            <div className="lp-reveal lp-delay-1 w-full max-w-md lg:max-w-lg xl:max-w-xl mx-auto lg:mx-0">
-              <div
-                className="relative w-full aspect-square"
-                role="img"
-                aria-label="Green waste bin with recycling symbol"
+            <div className="mt-8 flex flex-wrap gap-4">
+              <button
+                onClick={handleGetStarted}
+                className="bg-[#213a3d] text-[#f7f4ec] px-7 py-3.5 rounded-2xl hover:bg-[#162729] transition-all active:scale-95 transform focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 shadow-[0_16px_30px_rgba(33,58,61,0.2)] font-['Manrope',sans-serif] font-semibold text-base sm:text-lg"
               >
-                <div className="absolute inset-0 bg-[#84a98c] rounded-2xl shadow-2xl p-6 sm:p-8 lg:p-10">
-                  <div className="relative w-full h-full bg-[#f5f1e8] rounded-xl overflow-hidden flex items-center justify-center p-4 sm:p-6">
-                    <img
-                      src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800"
-                      alt="Green waste bin"
-                      className="w-full h-full object-contain"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+                Open Dashboard
+              </button>
 
+              <button
+                onClick={handleRequestPickup}
+                className="border-2 border-[#213a3d]/45 bg-white/70 backdrop-blur px-7 py-3.5 rounded-2xl hover:bg-[#213a3d] hover:text-[#f7f4ec] transition-all active:scale-95 transform focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 font-['Manrope',sans-serif] font-semibold text-base sm:text-lg"
+              >
+                Request Pickup
+              </button>
+
+              <button
+                onClick={handleLearnMore}
+                className="text-[#213a3d] underline underline-offset-4 px-2 py-3.5 font-['Manrope',sans-serif] font-semibold text-base sm:text-lg"
+              >
+                Learn More
+              </button>
+            </div>
           </div>
-        </div>
+
+          <div className="rounded-2xl overflow-hidden border border-[#355157]/15 bg-[#f2efe7]">
+            <img
+              src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=900"
+              alt="Green waste bin"
+              className="w-full h-64 sm:h-72 lg:h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+
+        <section className="lp-reveal lp-delay-1 mt-8 sm:mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              title: 'Easy Request Flow',
+              text: 'Submit a pickup request quickly with clear details for your location.',
+            },
+            {
+              title: 'Track Request Status',
+              text: 'See each request move from pending to completed in your dashboard.',
+            },
+            {
+              title: 'Simple History',
+              text: 'Review your past pickups anytime to stay organized.',
+            },
+          ].map((feature) => (
+            <article
+              key={feature.title}
+              className="rounded-2xl border border-[#355157]/15 bg-white/80 backdrop-blur p-5 shadow-[0_12px_24px_rgba(53,81,87,0.09)]"
+            >
+              <h3 className="font-['Outfit',sans-serif] text-xl font-semibold text-[#1f383b]">
+                {feature.title}
+              </h3>
+              <p className="mt-2 font-['Manrope',sans-serif] text-sm sm:text-base text-[#4d686e] leading-relaxed">
+                {feature.text}
+              </p>
+            </article>
+          ))}
+        </section>
       </div>
 
       {/* Floating Action Menu */}
