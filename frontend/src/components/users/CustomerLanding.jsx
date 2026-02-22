@@ -71,8 +71,8 @@ function CustomerLandingPage() {
 
   return (
     <div ref={pageRef} className="min-h-screen relative overflow-hidden bg-[#f7f4ec]">
-      <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-white/80 to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-white/70 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-64 bg-linear-to-b from-white/80 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-64 bg-linear-to-t from-white/70 to-transparent pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-16 sm:pb-24">
         <section className="lp-reveal lp-delay-0 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 rounded-3xl border border-[#355157]/15 bg-white/85 backdrop-blur p-6 sm:p-8 shadow-[0_24px_40px_rgba(53,81,87,0.12)]">
@@ -98,15 +98,8 @@ function CustomerLandingPage() {
               </button>
 
               <button
-                onClick={handleRequestPickup}
-                className="border-2 border-[#213a3d]/45 bg-white/70 backdrop-blur px-7 py-3.5 rounded-2xl hover:bg-[#213a3d] hover:text-[#f7f4ec] transition-all active:scale-95 transform focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 font-['Manrope',sans-serif] font-semibold text-base sm:text-lg"
-              >
-                Request Pickup
-              </button>
-
-              <button
                 onClick={handleLearnMore}
-                className="text-[#213a3d] underline underline-offset-4 px-2 py-3.5 font-['Manrope',sans-serif] font-semibold text-base sm:text-lg"
+                className="border-2 border-[#213a3d]/45 bg-white/70 backdrop-blur px-7 py-3.5 rounded-2xl hover:bg-[#213a3d] hover:text-[#f7f4ec] transition-all active:scale-95 transform focus:outline-none focus:ring-2 focus:ring-[#354f52] focus:ring-offset-2 font-['Manrope',sans-serif] font-semibold text-base sm:text-lg"
               >
                 Learn More
               </button>

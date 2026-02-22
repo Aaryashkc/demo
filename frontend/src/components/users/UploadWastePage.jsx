@@ -146,21 +146,21 @@ function UploadWastePage() {
       setJustSubmitted(true);
       setFile(null);
       setPreview(null);
-      setCategory('non-recyclable');
-      setLevel('easy');
 
       const payload = result.data;
-      if (payload?.url && payload?.publicId) {
-        setTimeout(() => {
-          resetUploadState();
-          setJustSubmitted(false);
-          navigate('/searching');
-        }, 2000);
-      } else {
+
+      setTimeout(() => {
         resetUploadState();
         setJustSubmitted(false);
-        navigate('/searching');
-      }
+        // Pass upload metadata to Searching so it can attach to the pickup request
+        navigate('/searching', {
+          state: {
+            wasteUploadId: payload?.id || null,
+            category: payload?.category || category,
+            level: payload?.level || level,
+          },
+        });
+      }, 1500);
     } else {
       alert(result.error || 'Upload failed');
     }
@@ -206,11 +206,10 @@ function UploadWastePage() {
                       key={item.id}
                       type="button"
                       onClick={() => setCategory(item.id)}
-                      className={`rounded-xl border p-4 text-left transition-all ${
-                        selected
+                      className={`rounded-xl border p-4 text-left transition-all ${selected
                           ? 'border-[#296200] bg-[#296200] text-white shadow-md'
                           : 'border-[#354f52]/20 bg-[#fdfcf9] text-[#354f52] hover:border-[#296200]/60 hover:bg-[#f6fbf2]'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-xs font-bold tracking-wider ${selected ? 'text-white/80' : 'text-[#296200]'}`}>
@@ -239,11 +238,10 @@ function UploadWastePage() {
                       key={item.id}
                       type="button"
                       onClick={() => setLevel(item.id)}
-                      className={`rounded-xl border p-4 text-left transition-all ${
-                        selected
+                      className={`rounded-xl border p-4 text-left transition-all ${selected
                           ? 'border-[#354f52] bg-[#354f52] text-white shadow-md'
                           : 'border-[#354f52]/20 bg-[#fdfcf9] text-[#354f52] hover:border-[#354f52]/60 hover:bg-[#f8f8f7]'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-semibold text-base">{item.label}</h3>
@@ -269,11 +267,10 @@ function UploadWastePage() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`relative block w-full min-h-[280px] sm:min-h-[340px] rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
-                  isDragging
+                className={`relative block w-full min-h-[280px] sm:min-h-[340px] rounded-2xl border-2 border-dashed cursor-pointer transition-all ${isDragging
                     ? 'border-[#296200] bg-[#f1f9e8]'
                     : 'border-[#354f52]/35 bg-[#fcfbf8] hover:border-[#296200]/70 hover:bg-[#f7fbf1]'
-                }`}
+                  }`}
               >
                 {!preview ? (
                   <div className="h-full min-h-[280px] sm:min-h-[340px] flex flex-col items-center justify-center text-center px-6">
@@ -387,19 +384,18 @@ function UploadWastePage() {
               type="button"
               onClick={handleSubmit}
               disabled={!file || isSubmitting || justSubmitted}
-              className={`mt-6 w-full rounded-xl py-3.5 font-semibold text-base transition-all ${
-                !file || isSubmitting || justSubmitted
+              className={`mt-6 w-full rounded-xl py-3.5 font-semibold text-base transition-all ${!file || isSubmitting || justSubmitted
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-[#296200] text-white hover:bg-[#245400] shadow-md'
-              }`}
+                }`}
             >
               {isSubmitting
                 ? uploadProgress > 0
                   ? `Uploading... ${uploadProgress}%`
                   : 'Submitting...'
                 : justSubmitted
-                ? 'Redirecting...'
-                : 'Submit Waste Data'}
+                  ? 'Redirecting...'
+                  : 'Submit Waste Data'}
             </button>
           </aside>
         </div>

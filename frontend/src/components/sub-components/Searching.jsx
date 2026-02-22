@@ -1,32 +1,25 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import ThankYouPage from "./ThankYouPage";
+import { getSocket } from "../../utils/socket";
+import usePickupStore from "../../stores/usePickupStore";
 
-// Component to handle map clicks
+// ── Map helpers ─────────────────────────────────────────────────────────────
 function MapClickHandler({ onClick }) {
-  useMapEvents({
-    click: (e) => {
-      onClick(e.latlng);
-    },
-  });
+  useMapEvents({ click: (e) => onClick(e.latlng) });
   return null;
 }
 
-// Component to update map view when center changes (only when needed)
 function ChangeMapView({ center, zoom }) {
   const map = useMap();
-  
   useEffect(() => {
-    if (center && center.length === 2) {
-      map.setView(center, zoom, { animate: true });
-    }
+    if (center?.length === 2) map.setView(center, zoom, { animate: true });
   }, [center, zoom, map]);
-  
   return null;
 }
 
-// Custom Leaflet Search Control Component (rendered outside map)
 function MapSearchControl({ onLocationSelect }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,40 +29,35 @@ function MapSearchControl({ onLocationSelect }) {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-
     setIsSearching(true);
     try {
-      const response = await fetch(
+      const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'SafaBin-WasteManagement/1.0'
-          }
-        }
+        { headers: { "User-Agent": "SafaBin-WasteManagement/1.0" } }
       );
-      const data = await response.json();
-      setSearchResults(data);
-    } catch (error) {
-      console.error('Error searching address:', error);
+      setSearchResults(await res.json());
+    } catch (e) {
+      console.error("Address search error:", e);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
   };
 
-  const handleSelectResult = (result) => {
-    const lat = parseFloat(result.lat);
-    const lon = parseFloat(result.lon);
-    onLocationSelect([lat, lon], result.display_name || `${result.address?.road || ''}, ${result.address?.city || result.address?.town || ''}`.trim());
+  const handleSelectResult = (r) => {
+    const lat = parseFloat(r.lat);
+    const lon = parseFloat(r.lon);
+    onLocationSelect(
+      [lat, lon],
+      r.display_name || `${r.address?.road || ""}, ${r.address?.city || r.address?.town || ""}`.trim()
+    );
     setIsOpen(false);
     setSearchQuery("");
     setSearchResults([]);
   };
 
   useEffect(() => {
-    if (isOpen && searchRef.current) {
-      searchRef.current.focus();
-    }
+    if (isOpen && searchRef.current) searchRef.current.focus();
   }, [isOpen]);
 
   return (
@@ -93,23 +81,13 @@ function MapSearchControl({ onLocationSelect }) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
-                }
-              }}
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
               placeholder="Search address..."
               className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-[var(--primary)] text-sm"
-              autoFocus
             />
             <button
-              onClick={() => {
-                setIsOpen(false);
-                setSearchQuery("");
-                setSearchResults([]);
-              }}
+              onClick={() => { setIsOpen(false); setSearchQuery(""); setSearchResults([]); }}
               className="p-2 hover:bg-gray-100 rounded transition"
-              title="Close"
             >
               <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -122,18 +100,18 @@ function MapSearchControl({ onLocationSelect }) {
               disabled={isSearching}
               className="mx-3 mt-2 px-4 py-2 bg-[var(--primary)] text-white rounded hover:bg-[var(--primary)]/90 transition text-sm font-medium disabled:opacity-50"
             >
-              {isSearching ? 'Searching...' : 'Search'}
+              {isSearching ? "Searching..." : "Search"}
             </button>
           )}
           {searchResults.length > 0 && (
             <div className="overflow-y-auto max-h-64 p-2">
-              {searchResults.map((result, index) => (
+              {searchResults.map((r, i) => (
                 <button
-                  key={index}
-                  onClick={() => handleSelectResult(result)}
+                  key={i}
+                  onClick={() => handleSelectResult(r)}
                   className="w-full text-left p-3 hover:bg-gray-100 rounded transition text-sm"
                 >
-                  <div className="font-medium text-gray-800">{result.display_name}</div>
+                  <div className="font-medium text-gray-800">{r.display_name}</div>
                 </button>
               ))}
             </div>
@@ -144,153 +122,205 @@ function MapSearchControl({ onLocationSelect }) {
   );
 }
 
+// ── Driver Found card ────────────────────────────────────────────────────────
+function DriverFoundCard({ driverInfo, assignedAt }) {
+  return (
+    <div className="bg-white rounded-2xl border border-[var(--primary)]/15 shadow-sm overflow-hidden mt-4">
+      <div className="px-5 py-4 bg-[#e8f5e2] border-b border-[var(--primary)]/15 flex items-center gap-3">
+        {/* Green checkmark */}
+        <span className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-[var(--primary)]">Driver Assigned!</p>
+          <p className="text-xs text-[var(--primary)]/70">Your pickup request has been accepted</p>
+        </div>
+      </div>
+
+      <div className="divide-y divide-[var(--primary)]/10">
+        <Row label="DRIVER NAME" value={driverInfo?.name || "—"} highlight />
+        <Row label="PHONE" value={driverInfo?.phone || "—"} />
+        <Row
+          label="VEHICLE"
+          value={
+            [driverInfo?.vehicleId, driverInfo?.licensePlate].filter(Boolean).join(" · ") || "—"
+          }
+        />
+        <Row
+          label="ACCEPTED AT"
+          value={assignedAt ? new Date(assignedAt).toLocaleTimeString() : "—"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, highlight }) {
+  return (
+    <div className="px-5 py-4 flex items-center justify-between">
+      <span className="text-xs font-semibold tracking-wide text-[var(--primary)]/60">{label}</span>
+      <span className={`text-sm font-semibold ${highlight ? "text-[var(--primary)]" : "text-[var(--primary)]/80"}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
 /**
  * Flow states:
- *  - "confirm": user sees location + Confirm/Cancel
- *  - "searching": app is searching drivers + Cancel Searching
- *  - "found": driver found + Call Driver/Cancel + 60s countdown
- *  - "thankyou": thank you page after calling driver
+ *  "confirm"   — customer picks location, clicks Confirm
+ *  "searching" — pickup request sent; waiting for a driver
+ *  "found"     — driver accepted; shows driver info + countdown
+ *  "cancelled" — request was cancelled or expired
+ *  "thankyou"  — customer clicked Call Driver
  */
 function SearchPage() {
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
+
+  // Metadata from UploadWastePage navigation state
+  const { wasteUploadId = null, category = "non-recyclable", level = "easy" } =
+    routerLocation.state || {};
+
+  const { createPickup, cancelPickup, currentPickup, loading } = usePickupStore();
+
   const [flow, setFlow] = useState("confirm");
-  const [userName] = useState("user hello"); // replace with actual user
+  const [pickupId, setPickupId] = useState(null);
+  const [driverInfo, setDriverInfo] = useState(null);
+  const [assignedAt, setAssignedAt] = useState(null);
 
   // Map state
-  const [mapCenter, setMapCenter] = useState([27.7172, 85.3240]); // Kathmandu
+  const [mapCenter, setMapCenter] = useState([27.7172, 85.324]); // Kathmandu
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [selectedAddress, setSelectedAddress] = useState(null); // Store full address for backend
+  const [selectedAddress, setSelectedAddress] = useState(null);
 
-
-  // Dynamic address label
   const addressLabel = selectedAddress
     ? selectedAddress
     : selectedLocation
-    ? `Location: ${selectedLocation[0].toFixed(4)}, ${selectedLocation[1].toFixed(4)}`
-    : "Manage waste collection with precision and ease";
+      ? `Location: ${selectedLocation[0].toFixed(4)}, ${selectedLocation[1].toFixed(4)}`
+      : "Manage waste collection with precision and ease";
 
-  // Driver info (mock)
-  const driver = useMemo(
-    () => ({
-      truckId: "TRUCK-042",
-      phone: "+9779800000000",
-    }),
-    []
-  );
-
-  // Countdown only when driver found
+  // Countdown after driver is found (60 s to cancel)
   const [secondsLeft, setSecondsLeft] = useState(60);
   const intervalRef = useRef(null);
 
-  // When driver is found, start countdown
   useEffect(() => {
     if (flow !== "found") {
-      // Clear interval if flow changes away from "found"
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
       return;
     }
-
-    // Clear any existing interval before creating a new one
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    // Reset countdown (deferred to avoid linter warning)
-    setTimeout(() => {
-      setSecondsLeft(60);
-    }, 0);
-
+    clearInterval(intervalRef.current);
+    setSecondsLeft(60);
     intervalRef.current = setInterval(() => {
       setSecondsLeft((s) => {
-        if (s <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          return 0;
-        }
+        if (s <= 1) { clearInterval(intervalRef.current); intervalRef.current = null; return 0; }
         return s - 1;
       });
     }, 1000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
+    return () => clearInterval(intervalRef.current);
   }, [flow]);
 
-  // Demo transitions (replace with real API logic)
-  const handleConfirm = () => {
+  // ── Socket listeners ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const socket = getSocket();
+
+    const onAccepted = (data) => {
+      // Only handle events for our own pickup
+      if (pickupId && data.id?.toString() !== pickupId?.toString()) return;
+      setDriverInfo(data.driverInfo || null);
+      setAssignedAt(data.assignedAt || null);
+      setFlow("found");
+    };
+
+    const onStatus = (data) => {
+      if (pickupId && data.id?.toString() !== pickupId?.toString()) return;
+      if (data.status === "CANCELLED" || data.status === "EXPIRED") {
+        setFlow("cancelled");
+      }
+    };
+
+    socket.on("pickup:accepted", onAccepted);
+    socket.on("pickup:status", onStatus);
+
+    return () => {
+      socket.off("pickup:accepted", onAccepted);
+      socket.off("pickup:status", onStatus);
+    };
+  }, [pickupId]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+  const handleConfirm = async () => {
     if (!selectedLocation) {
       alert("Please select a location on the map first");
       return;
     }
     setFlow("searching");
 
-    // simulate "searching" then "found" in 2.5s
-    setTimeout(() => setFlow("found"), 2500);
+    const result = await createPickup(
+      {
+        latitude: selectedLocation[0],
+        longitude: selectedLocation[1],
+        address: selectedAddress,
+      },
+      { wasteUploadId, category, level }
+    );
+
+    if (result.success) {
+      setPickupId(result.pickup.id);
+    } else {
+      alert(result.error || "Failed to create pickup request. Please try again.");
+      setFlow("confirm");
+    }
   };
 
-  const handleCancel = () => {
-    // in real app: cancel order / go back
+  const handleCancelSearching = async () => {
+    if (pickupId) await cancelPickup(pickupId);
     setFlow("confirm");
+    setPickupId(null);
   };
 
-  const handleCancelSearching = () => {
-    // in real app: cancel searching request
+  const handleCancel = async () => {
+    if (pickupId) await cancelPickup(pickupId);
     setFlow("confirm");
+    setPickupId(null);
+    setDriverInfo(null);
   };
 
-  const handleCallDriver = () => {
-    // Show thank you page after clicking call driver
-    setFlow("thankyou");
-    // Optionally, you can still trigger the phone call
-    // window.location.href = `tel:${driver.phone}`;
-  };
+  const handleCallDriver = () => setFlow("thankyou");
 
   const handleBackToHome = () => {
-    // Reset flow to initial state
     setFlow("confirm");
     setSelectedLocation(null);
     setSelectedAddress(null);
+    setPickupId(null);
+    setDriverInfo(null);
+    usePickupStore.getState().resetPickup();
+    navigate("/customer-dashboard");
   };
 
   const handleMapClick = (latlng) => {
-    const newLocation = [latlng.lat, latlng.lng];
-    setSelectedLocation(newLocation);
-    setMapCenter(newLocation);
-    setSelectedAddress(null); // Clear address when clicking map
+    const loc = [latlng.lat, latlng.lng];
+    setSelectedLocation(loc);
+    setMapCenter(loc);
+    setSelectedAddress(null);
   };
 
-
-  // Handle location select from map search control
   const handleMapSearchSelect = (location, address) => {
     setSelectedLocation(location);
     setMapCenter(location);
     setSelectedAddress(address);
-    console.log('Selected location from map search:', {
-      address: address,
-      latitude: location[0],
-      longitude: location[1]
-    });
   };
 
-  // Check if cancel should be disabled (after 1 minute)
   const canCancel = secondsLeft > 0;
 
-  // Placeholder map image (replace with Leaflet later)
-  // const mapImg =
-  //   "https://images.unsplash.com/photo-1533777419517-3e4017e2e15c?auto=format&fit=crop&w=1600&q=80";
-
-  // Show thank you page when flow is "thankyou"
   if (flow === "thankyou") {
     return (
-      <ThankYouPage 
-        driverInfo={driver} 
+      <ThankYouPage
+        driverInfo={driverInfo}
         onBackToHome={handleBackToHome}
       />
     );
@@ -298,7 +328,6 @@ function SearchPage() {
 
   return (
     <div className="app-bg">
-      
       <main className="app-container">
         {/* Map Area */}
         <section className="bg-white rounded-2xl overflow-hidden border border-black/10 shadow-sm">
@@ -312,108 +341,122 @@ function SearchPage() {
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap contributors'
+                attribution="&copy; OpenStreetMap contributors"
               />
-
               <ChangeMapView center={mapCenter} zoom={15} />
-
               {selectedLocation && <Marker position={selectedLocation} />}
-
               <MapClickHandler onClick={handleMapClick} />
             </MapContainer>
           </div>
 
-          {/* Bottom Status Panel */}
-          <div className="bg-[#f5f1e8] px-8 py-7 relative">
-            {/* Title */}
+          {/* Status Panel */}
+          <div className="bg-[#f5f1e8] px-6 sm:px-8 py-6 sm:py-7">
+
+            {/* ── CONFIRM ── */}
             {flow === "confirm" && (
               <>
-                <h2 className="text-3xl font-semibold text-black mb-2">{userName}</h2>
-                <p className="text-[var(--accent)] text-sm mb-6">{addressLabel}</p>
-
+                <h2 className="text-2xl sm:text-3xl font-semibold text-black mb-1">
+                  Set Pickup Location
+                </h2>
+                <p className="text-[var(--accent)] text-sm mb-5">{addressLabel}</p>
                 <div className="flex gap-4">
                   <button
-                    onClick={handleCancel}
-                    className="border-2 border-[var(--primary)] text-[var(--primary)] px-10 py-3 rounded-2xl bg-transparent hover:bg-white active:scale-95 transition"
+                    onClick={() => navigate(-1)}
+                    className="border-2 border-[var(--primary)] text-[var(--primary)] px-8 py-3 rounded-2xl bg-transparent hover:bg-white active:scale-95 transition"
                   >
                     Cancel
                   </button>
-
                   <button
                     onClick={handleConfirm}
-                    disabled={!selectedLocation}
-                    className={`px-10 py-3 rounded-2xl transition shadow-sm ${
-                      selectedLocation
-                        ? 'bg-[var(--primary)] text-white hover:opacity-95 active:scale-95 cursor-pointer'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-                    }`}
-                    title={!selectedLocation ? 'Please select a location on the map first' : ''}
+                    disabled={!selectedLocation || loading}
+                    className={`px-8 py-3 rounded-2xl transition shadow-sm ${selectedLocation && !loading
+                        ? "bg-[var(--primary)] text-white hover:opacity-95 active:scale-95 cursor-pointer"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                      }`}
                   >
-                    Confirm
+                    {loading ? "Creating request…" : "Confirm Location"}
                   </button>
                 </div>
               </>
             )}
 
+            {/* ── SEARCHING ── */}
             {flow === "searching" && (
               <>
-                <h2 className="text-3xl font-semibold text-black mb-2">Searching Drivers</h2>
-                <p className="text-[var(--accent)] text-sm mb-6">{addressLabel}</p>
-
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleCancelSearching}
-                    className="border-2 border-[var(--primary)] text-[var(--primary)] px-10 py-3 rounded-2xl bg-transparent hover:bg-white active:scale-95 transition"
-                  >
-                    Cancel Searching
-                  </button>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="inline-flex">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-ping" />
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-black">Searching for drivers…</h2>
                 </div>
+                <p className="text-[var(--accent)] text-sm mb-5">{addressLabel}</p>
+                <button
+                  onClick={handleCancelSearching}
+                  className="border-2 border-[var(--primary)] text-[var(--primary)] px-8 py-3 rounded-2xl bg-transparent hover:bg-white active:scale-95 transition"
+                >
+                  Cancel Searching
+                </button>
               </>
             )}
 
+            {/* ── DRIVER FOUND ── */}
             {flow === "found" && (
               <>
-                <div className="flex items-baseline gap-6 mb-2">
-                  <h2 className="text-2xl md:text-3xl font-semibold text-black">
-                    DRIVER FOUND
-                  </h2>
-                  <span className="text-[var(--accent)] text-sm font-medium">
-                    {driver.truckId}
-                  </span>
+                <div className="flex items-baseline gap-4 mb-1">
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-black">DRIVER FOUND</h2>
+                  {driverInfo?.licensePlate && (
+                    <span className="text-[var(--accent)] text-sm font-medium">
+                      {driverInfo.licensePlate}
+                    </span>
+                  )}
                 </div>
+                <p className="text-[var(--accent)] text-sm mb-1">Truck is on its way. Be Patient.</p>
+                {canCancel && (
+                  <p className="text-[var(--primary)]/80 text-sm mb-4">
+                    Cancel within{" "}
+                    <span className="font-semibold text-[var(--primary)]">
+                      {String(secondsLeft).padStart(2, "0")}s
+                    </span>
+                  </p>
+                )}
 
-                <p className="text-[var(--accent)] text-sm mb-2">
-                  Truck is on it&apos;s way. Be Patient.
-                </p>
+                {/* Driver info card */}
+                <DriverFoundCard driverInfo={driverInfo} assignedAt={assignedAt} />
 
-                <p className="text-[var(--primary)]/80 text-sm mb-6">
-                  Cancel with in {" "}
-                  <span className="font-semibold text-[var(--primary)]">
-                    {String(secondsLeft).padStart(2, "0")}s
-                  </span>
-                </p>
-
-                <div className="flex gap-4">
+                <div className="flex gap-4 mt-5">
                   <button
                     onClick={handleCallDriver}
-                    className="bg-[var(--primary)] text-white px-10 py-3 rounded-2xl hover:opacity-95 active:scale-95 transition shadow-sm"
+                    className="bg-[var(--primary)] text-white px-8 py-3 rounded-2xl hover:opacity-95 active:scale-95 transition shadow-sm"
                   >
                     CALL DRIVER
                   </button>
-
                   <button
                     onClick={handleCancel}
                     disabled={!canCancel}
-                    className={`px-10 py-3 rounded-2xl active:scale-95 transition shadow-sm ${
-                      canCancel
-                        ? 'bg-red-400 text-white hover:bg-red-500 cursor-pointer'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-                    }`}
-                    title={!canCancel ? 'Cannot cancel after 1 minute' : ''}
+                    className={`px-8 py-3 rounded-2xl active:scale-95 transition shadow-sm ${canCancel
+                        ? "bg-red-400 text-white hover:bg-red-500 cursor-pointer"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                      }`}
                   >
                     Cancel
                   </button>
                 </div>
+              </>
+            )}
+
+            {/* ── CANCELLED / EXPIRED ── */}
+            {flow === "cancelled" && (
+              <>
+                <h2 className="text-2xl sm:text-3xl font-semibold text-black mb-2">Request Cancelled</h2>
+                <p className="text-[var(--accent)] text-sm mb-5">
+                  Your pickup request was cancelled or expired. Please try again.
+                </p>
+                <button
+                  onClick={() => { setFlow("confirm"); setPickupId(null); }}
+                  className="bg-[var(--primary)] text-white px-8 py-3 rounded-2xl hover:opacity-95 active:scale-95 transition shadow-sm"
+                >
+                  Try Again
+                </button>
               </>
             )}
           </div>

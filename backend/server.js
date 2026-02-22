@@ -1,3 +1,4 @@
+import http from "http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -11,7 +12,9 @@ import driverRoutes from "./routes/driver.route.js";
 import userRoutes from "./routes/user.route.js";
 import scheduleRoutes from "./routes/schedule.route.js";
 import locationRoutes from "./routes/location.route.js";
+import pickupRoutes from "./routes/pickup.route.js";
 import { cleanupExpiredUploads } from "./controllers/upload.controller.js";
+import { initSocket } from "./socket/socketServer.js";
 
 dotenv.config();
 
@@ -22,23 +25,22 @@ const CRON_SCHEDULE = "0 2 * * *"; // 2:00 AM every day (server local time)
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration
-// In development, allow all origins for easier debugging
-// In production, use specific origin from env variable
+// ── CORS ──────────────────────────────────────────────────────────────────
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? (process.env.FRONTEND_URL || 'http://localhost:5173')
-    : true, // Allow all origins in development
+  origin: process.env.NODE_ENV === "production"
+    ? (process.env.FRONTEND_URL || "http://localhost:5173")
+    : true,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── REST routes ───────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/org-admin", orgAdminRoutes);
@@ -46,8 +48,9 @@ app.use("/api/driver", driverRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/location", locationRoutes);
+app.use("/api/pickups", pickupRoutes);
 
-// Health check endpoint
+// Health check
 app.get("/", (req, res) => {
   res.json({ message: "Waste Management System API" });
 });
@@ -56,11 +59,11 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || "development",
   });
 });
 
-// Optional: cron endpoint for external scheduler (e.g. Vercel Cron). Use CRON_SECRET in query.
+// External cron endpoint (optional; protect with CRON_SECRET in production)
 app.get("/api/cron/cleanup-uploads", async (req, res) => {
   const secret = process.env.CRON_SECRET;
   if (secret && req.query.secret !== secret) {
@@ -75,29 +78,38 @@ app.get("/api/cron/cleanup-uploads", async (req, res) => {
   }
 });
 
-// Error handling middleware
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error("Error:", err);
   res.status(err.status || 500).json({
-    message: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message: err.message || "Internal server error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`CORS enabled for: ${process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || 'http://localhost:5173') : 'all origins (development)'}`);
+// ── HTTP + Socket.IO server ───────────────────────────────────────────────
+const server = http.createServer(app);
+initSocket(server); // attach Socket.IO to the same HTTP server
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(
+    `CORS enabled for: ${process.env.NODE_ENV === "production"
+      ? process.env.FRONTEND_URL || "http://localhost:5173"
+      : "all origins (development)"
+    }`
+  );
   connectDB();
 
-  // 30-day Cloudinary cleanup: run daily at 2:00 AM; single schedule to avoid duplicate jobs on hot reload
   if (!cleanupCronScheduled) {
     cleanupCronScheduled = true;
     cron.schedule(CRON_SCHEDULE, () => {
       cleanupExpiredUploads()
         .then((r) => {
-          if (r.total > 0) console.log(`Cleanup: removed ${r.deleted} expired waste upload(s), errors=${r.errors}`);
+          if (r.total > 0)
+            console.log(`Cleanup: removed ${r.deleted} expired waste upload(s), errors=${r.errors}`);
         })
         .catch((e) => console.error("Cleanup error:", e));
-    });  
+    });
   }
 });
